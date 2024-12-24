@@ -28,7 +28,7 @@ A powerful AI-enhanced Git CLI tool that helps you manage your Git workflow with
 
 ## Installation
 
-### One-Line Installation
+### Quick Installation
 
 #### Windows (PowerShell Administrator)
 ```powershell
@@ -40,33 +40,28 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 curl -fsSL https://raw.githubusercontent.com/Sweet-Papa-Technologies/egit/main/install.sh | bash
 ```
 
-The installer will automatically:
+The installer will:
 - Install Python 3.10 if not present
 - Install Git if not present
-- Install Docker if not present
-- Install WSL2 on Windows if needed
-- Set up NVIDIA toolkit for Linux with NVIDIA GPUs
-- Download and configure the LLM model
-- Install the eGit package
+- Clone the eGit repository
+- Run the Python installer which will set up all additional dependencies
 
 ### Manual Installation
 
-1. Clone the repository:
+1. Install Python 3.10 and Git for your platform
+2. Clone the repository:
 ```bash
 git clone https://github.com/Sweet-Papa-Technologies/egit.git
 cd egit
 ```
 
-2. Run the platform-specific installer:
-
-Windows (PowerShell Administrator):
-```powershell
-.\install.ps1
-```
-
-macOS/Linux:
+3. Run the installer:
 ```bash
-./install.sh
+# Windows
+python install.py
+
+# macOS/Linux
+python3.10 install.py
 ```
 
 ## Usage

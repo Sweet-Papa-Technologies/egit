@@ -58,35 +58,20 @@ function Install-Dependencies {
         choco install git -y
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
     }
-
-    # Install Docker Desktop if not present
-    if (-not (Test-Command "docker")) {
-        Write-Host "🐳 Installing Docker Desktop..." -ForegroundColor Yellow
-        choco install docker-desktop -y
-        
-        # Install WSL2
-        Write-Host "🐧 Installing WSL2..." -ForegroundColor Yellow
-        choco install wsl2 -y
-    }
 }
 
 function Install-eGit {
-    $tempDir = Join-Path $env:TEMP "egit-install"
-    $installScript = Join-Path $tempDir "install.py"
-
-    # Create temp directory
-    New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
-
-    # Download installer
-    Write-Host "📥 Downloading eGit installer..." -ForegroundColor Yellow
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Sweet-Papa-Technologies/egit/main/install.py" -OutFile $installScript
+    $installDir = Join-Path $HOME "egit"
+    
+    # Clone repository
+    Write-Host "📥 Cloning eGit repository..." -ForegroundColor Yellow
+    git clone https://github.com/Sweet-Papa-Technologies/egit.git $installDir
 
     # Run installer
-    Write-Host "🚀 Installing eGit..." -ForegroundColor Yellow
-    python $installScript
-
-    # Cleanup
-    Remove-Item -Recurse -Force $tempDir
+    Write-Host "🚀 Running eGit installer..." -ForegroundColor Yellow
+    Push-Location $installDir
+    python install.py
+    Pop-Location
 }
 
 try {
