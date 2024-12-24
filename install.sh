@@ -90,19 +90,53 @@ install_python_packages() {
     python3.10 -m pip install rich typer docker pydantic litellm gitpython python-dotenv
 }
 
+# Update repository
+update_repository() {
+    local repo_path="$1"
+    pushd "$repo_path" >/dev/null
+    echo -e "\033[33mUpdating eGit repository...\033[0m"
+    
+    # Stash any local changes
+    git stash -u
+    
+    # Switch to main branch and pull
+    git checkout main
+    git pull origin main
+    
+    popd >/dev/null
+}
+
 # Install eGit
 install_egit() {
     local install_dir="$HOME/egit"
 
-    echo -e "\033[33mCloning eGit repository...\033[0m"
-    git clone https://github.com/Sweet-Papa-Technologies/egit.git "$install_dir"
+    if [ -d "$install_dir" ]; then
+        if [ -d "$install_dir/.git" ]; then
+            update_repository "$install_dir"
+        else
+            echo -e "\033[33mRemoving existing non-git directory...\033[0m"
+            rm -rf "$install_dir"
+            echo -e "\033[33mCloning eGit repository...\033[0m"
+            git clone https://github.com/Sweet-Papa-Technologies/egit.git "$install_dir"
+        fi
+    else
+        echo -e "\033[33mCloning eGit repository...\033[0m"
+        git clone https://github.com/Sweet-Papa-Technologies/egit.git "$install_dir"
+    fi
 
     echo -e "\033[33mInstalling Python packages...\033[0m"
     install_python_packages
 
     echo -e "\033[33mRunning eGit installer...\033[0m"
     cd "$install_dir"
-    python3.10 install.py
+    
+    # Run installer with timeout
+    timeout 300 python3.10 install.py || {
+        echo -e "\033[31mInstallation timed out after 300 seconds.\033[0m"
+        echo -e "\033[31mThis might be due to Docker installation taking too long.\033[0m"
+        echo -e "\033[33mPlease try running 'python3.10 install.py' manually in $install_dir\033[0m"
+        exit 1
+    }
 }
 
 # Main installation process

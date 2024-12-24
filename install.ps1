@@ -65,15 +65,64 @@ function Install-PythonPackages {
     python -m pip install rich typer docker pydantic litellm gitpython python-dotenv
 }
 
+function Update-Repository {
+    param(
+        [string]$RepoPath
+    )
+    
+    Push-Location $RepoPath
+    Write-Host "Updating eGit repository..." -ForegroundColor Yellow
+    
+    # Stash any local changes
+    git stash -u
+    
+    # Switch to main branch and pull
+    git checkout main
+    git pull origin main
+    
+    Pop-Location
+}
+
 function Install-eGit {
     $installDir = Join-Path $HOME "egit"
-    Write-Host "Cloning eGit repository..." -ForegroundColor Yellow
-    git clone https://github.com/Sweet-Papa-Technologies/egit.git $installDir
+    
+    if (Test-Path $installDir) {
+        if (Test-Path (Join-Path $installDir ".git")) {
+            Update-Repository -RepoPath $installDir
+        } else {
+            Write-Host "Removing existing non-git directory..." -ForegroundColor Yellow
+            Remove-Item -Recurse -Force $installDir
+            Write-Host "Cloning eGit repository..." -ForegroundColor Yellow
+            git clone https://github.com/Sweet-Papa-Technologies/egit.git $installDir
+        }
+    } else {
+        Write-Host "Cloning eGit repository..." -ForegroundColor Yellow
+        git clone https://github.com/Sweet-Papa-Technologies/egit.git $installDir
+    }
 
     Write-Host "Running eGit installer..." -ForegroundColor Yellow
     Push-Location $installDir
     Install-PythonPackages
-    python install.py
+    
+    # Run installer with timeout
+    $job = Start-Job -ScriptBlock { 
+        Set-Location $using:installDir
+        python install.py 
+    }
+    
+    $timeout = 300 # 5 minutes timeout
+    if (Wait-Job $job -Timeout $timeout) {
+        Receive-Job $job
+    } else {
+        Write-Host "Installation timed out after $timeout seconds." -ForegroundColor Red
+        Write-Host "This might be due to Docker installation taking too long." -ForegroundColor Red
+        Write-Host "Please try running 'python install.py' manually in $installDir" -ForegroundColor Yellow
+        Stop-Job $job
+        Remove-Job $job
+        Pop-Location
+        exit 1
+    }
+    
     Pop-Location
 }
 

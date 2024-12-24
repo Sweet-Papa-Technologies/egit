@@ -104,7 +104,7 @@ def install_windows_dependencies() -> None:
         # Install Docker
         if not is_command_available("docker"):
             task = progress.add_task("Installing Docker...", total=None)
-            run_command(["choco", "install", "docker-desktop", "-y"])
+            run_command(["choco", "install", "docker", "-y"])
             progress.update(task, completed=True)
 
         # Install Git
