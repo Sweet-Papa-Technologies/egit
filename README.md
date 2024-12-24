@@ -30,13 +30,24 @@ A powerful AI-enhanced Git CLI tool that helps you manage your Git workflow with
 
 ### One-Line Installation
 
-```bash
-# Windows (PowerShell)
-python -c "$(curl -fsSL https://raw.githubusercontent.com/Sweet-Papa-Technologies/egit/main/install.py)"
-
-# macOS/Linux
-python3 -c "$(curl -fsSL https://raw.githubusercontent.com/Sweet-Papa-Technologies/egit/main/install.py)"
+#### Windows (PowerShell Administrator)
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/Sweet-Papa-Technologies/egit/main/install.ps1'))
 ```
+
+#### macOS/Linux
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sweet-Papa-Technologies/egit/main/install.sh | bash
+```
+
+The installer will automatically:
+- Install Python 3.10 if not present
+- Install Git if not present
+- Install Docker if not present
+- Install WSL2 on Windows if needed
+- Set up NVIDIA toolkit for Linux with NVIDIA GPUs
+- Download and configure the LLM model
+- Install the eGit package
 
 ### Manual Installation
 
@@ -46,16 +57,17 @@ git clone https://github.com/Sweet-Papa-Technologies/egit.git
 cd egit
 ```
 
-2. Run the installer:
-```bash
-python install.py
+2. Run the platform-specific installer:
+
+Windows (PowerShell Administrator):
+```powershell
+.\install.ps1
 ```
 
-The installer will:
-- Install required system dependencies (Git, Python, Docker)
-- Set up Docker and container runtime
-- Install the eGit package
-- Download and configure the LLM model
+macOS/Linux:
+```bash
+./install.sh
+```
 
 ## Usage
 
