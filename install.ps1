@@ -122,7 +122,7 @@ function Install-eGit {
                 python install.py 
             }
             
-            $timeout = 300 # 5 minutes timeout
+            $timeout = 300000 # 5 minutes timeout
             if (Wait-Job $job -Timeout $timeout) {
                 Receive-Job $job
                 $success = $true
