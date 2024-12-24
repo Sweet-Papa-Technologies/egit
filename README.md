@@ -32,7 +32,7 @@ A powerful AI-enhanced Git CLI tool that helps you manage your Git workflow with
 
 #### Windows (PowerShell Administrator)
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/Sweet-Papa-Technologies/egit/main/install.ps1'))
+irm https://raw.githubusercontent.com/Sweet-Papa-Technologies/egit/main/install.ps1 | iex
 ```
 
 #### macOS/Linux
