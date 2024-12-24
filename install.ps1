@@ -116,27 +116,27 @@ function Install-eGit {
             Write-Host "Running eGit installer..." -ForegroundColor Yellow
             Push-Location $installDir
 
-            # Run installer with timeout
-            $job = Start-Job -ScriptBlock { 
-                Set-Location $using:installDir
-                python install.py 
-            }
-            
-            $timeout = 300000 # 5 minutes timeout
-            if (Wait-Job $job -Timeout $timeout) {
-                Receive-Job $job
+            # Run installer directly with error capture
+            try {
+                $output = python install.py 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Python installer failed with exit code $LASTEXITCODE`n$output"
+                }
                 $success = $true
-            } else {
-                Write-Host "Installation timed out after $timeout seconds." -ForegroundColor Red
-                Write-Host "This might be due to Docker installation taking too long." -ForegroundColor Red
-                Write-Host "Please try running 'python install.py' manually in $installDir" -ForegroundColor Yellow
-                Stop-Job $job
-                Remove-Job $job
-                Pop-Location
-                exit 1
             }
-            
-            Pop-Location
+            catch {
+                Write-Host "Installation error: $_" -ForegroundColor Red
+                $retryCount++
+                if ($retryCount -lt $maxRetries) {
+                    Write-Host "Retrying... (Attempt $retryCount of $maxRetries)" -ForegroundColor Yellow
+                    Start-Sleep -Seconds 2
+                    continue
+                }
+                throw
+            }
+            finally {
+                Pop-Location
+            }
         }
         catch {
             $retryCount++
