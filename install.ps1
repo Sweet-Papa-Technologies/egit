@@ -118,7 +118,7 @@ function Install-eGit {
 
             # Run installer directly with error capture
             try {
-                python install.py 2>&1
+                python install.py
                 
                 $success = $true
             }
