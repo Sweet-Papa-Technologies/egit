@@ -85,45 +85,74 @@ function Update-Repository {
 
 function Install-eGit {
     $installDir = Join-Path $HOME "egit"
-    
-    if (Test-Path $installDir) {
-        if (Test-Path (Join-Path $installDir ".git")) {
-            Update-Repository -RepoPath $installDir
-        } else {
-            Write-Host "Removing existing non-git directory..." -ForegroundColor Yellow
-            Remove-Item -Recurse -Force $installDir
-            Write-Host "Cloning eGit repository..." -ForegroundColor Yellow
-            git clone https://github.com/Sweet-Papa-Technologies/egit.git $installDir
-        }
-    } else {
-        Write-Host "Cloning eGit repository..." -ForegroundColor Yellow
-        git clone https://github.com/Sweet-Papa-Technologies/egit.git $installDir
-    }
+    $maxRetries = 3
+    $retryCount = 0
+    $success = $false
 
-    Write-Host "Running eGit installer..." -ForegroundColor Yellow
-    Push-Location $installDir
-    Install-PythonPackages
-    
-    # Run installer with timeout
-    $job = Start-Job -ScriptBlock { 
-        Set-Location $using:installDir
-        python install.py 
+    while (-not $success -and $retryCount -lt $maxRetries) {
+        try {
+            if (Test-Path $installDir) {
+                if (Test-Path (Join-Path $installDir ".git")) {
+                    Update-Repository -RepoPath $installDir
+                } else {
+                    Write-Host "Removing existing non-git directory..." -ForegroundColor Yellow
+                    Remove-Item -Recurse -Force $installDir
+                    Write-Host "Cloning eGit repository..." -ForegroundColor Yellow
+                    git clone https://github.com/Sweet-Papa-Technologies/egit.git $installDir
+                }
+            } else {
+                Write-Host "Cloning eGit repository..." -ForegroundColor Yellow
+                git clone https://github.com/Sweet-Papa-Technologies/egit.git $installDir
+            }
+
+            # Verify repository was cloned successfully
+            if (-not (Test-Path (Join-Path $installDir "install.py"))) {
+                throw "Repository clone seems incomplete. Missing install.py"
+            }
+
+            Write-Host "Installing Python packages..." -ForegroundColor Yellow
+            Install-PythonPackages
+
+            Write-Host "Running eGit installer..." -ForegroundColor Yellow
+            Push-Location $installDir
+
+            # Run installer with timeout
+            $job = Start-Job -ScriptBlock { 
+                Set-Location $using:installDir
+                python install.py 
+            }
+            
+            $timeout = 300 # 5 minutes timeout
+            if (Wait-Job $job -Timeout $timeout) {
+                Receive-Job $job
+                $success = $true
+            } else {
+                Write-Host "Installation timed out after $timeout seconds." -ForegroundColor Red
+                Write-Host "This might be due to Docker installation taking too long." -ForegroundColor Red
+                Write-Host "Please try running 'python install.py' manually in $installDir" -ForegroundColor Yellow
+                Stop-Job $job
+                Remove-Job $job
+                Pop-Location
+                exit 1
+            }
+            
+            Pop-Location
+        }
+        catch {
+            $retryCount++
+            if ($retryCount -lt $maxRetries) {
+                Write-Host "Attempt $retryCount failed. Retrying..." -ForegroundColor Yellow
+                Start-Sleep -Seconds 2
+                # Clean up if needed
+                if (Test-Path $installDir) {
+                    Remove-Item -Recurse -Force $installDir -ErrorAction SilentlyContinue
+                }
+            } else {
+                Write-Host "Failed to install after $maxRetries attempts: $_" -ForegroundColor Red
+                exit 1
+            }
+        }
     }
-    
-    $timeout = 300 # 5 minutes timeout
-    if (Wait-Job $job -Timeout $timeout) {
-        Receive-Job $job
-    } else {
-        Write-Host "Installation timed out after $timeout seconds." -ForegroundColor Red
-        Write-Host "This might be due to Docker installation taking too long." -ForegroundColor Red
-        Write-Host "Please try running 'python install.py' manually in $installDir" -ForegroundColor Yellow
-        Stop-Job $job
-        Remove-Job $job
-        Pop-Location
-        exit 1
-    }
-    
-    Pop-Location
 }
 
 try {

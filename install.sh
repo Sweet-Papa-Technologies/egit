@@ -109,33 +109,95 @@ update_repository() {
 # Install eGit
 install_egit() {
     local install_dir="$HOME/egit"
+    local max_retries=3
+    local retry_count=0
+    local success=false
 
-    if [ -d "$install_dir" ]; then
-        if [ -d "$install_dir/.git" ]; then
-            update_repository "$install_dir"
+    while [ "$success" = false ] && [ $retry_count -lt $max_retries ]; do
+        if [ -d "$install_dir" ]; then
+            if [ -d "$install_dir/.git" ]; then
+                update_repository "$install_dir" || {
+                    echo -e "\033[31mFailed to update repository\033[0m"
+                    rm -rf "$install_dir"
+                    retry_count=$((retry_count + 1))
+                    [ $retry_count -lt $max_retries ] && {
+                        echo -e "\033[33mRetrying... (Attempt $retry_count)\033[0m"
+                        sleep 2
+                        continue
+                    }
+                    return 1
+                }
+            else
+                echo -e "\033[33mRemoving existing non-git directory...\033[0m"
+                rm -rf "$install_dir"
+                echo -e "\033[33mCloning eGit repository...\033[0m"
+                git clone https://github.com/Sweet-Papa-Technologies/egit.git "$install_dir" || {
+                    retry_count=$((retry_count + 1))
+                    [ $retry_count -lt $max_retries ] && {
+                        echo -e "\033[33mRetrying... (Attempt $retry_count)\033[0m"
+                        sleep 2
+                        continue
+                    }
+                    return 1
+                }
+            fi
         else
-            echo -e "\033[33mRemoving existing non-git directory...\033[0m"
-            rm -rf "$install_dir"
             echo -e "\033[33mCloning eGit repository...\033[0m"
-            git clone https://github.com/Sweet-Papa-Technologies/egit.git "$install_dir"
+            git clone https://github.com/Sweet-Papa-Technologies/egit.git "$install_dir" || {
+                retry_count=$((retry_count + 1))
+                [ $retry_count -lt $max_retries ] && {
+                    echo -e "\033[33mRetrying... (Attempt $retry_count)\033[0m"
+                    sleep 2
+                    continue
+                }
+                return 1
+            }
         fi
-    else
-        echo -e "\033[33mCloning eGit repository...\033[0m"
-        git clone https://github.com/Sweet-Papa-Technologies/egit.git "$install_dir"
-    fi
 
-    echo -e "\033[33mInstalling Python packages...\033[0m"
-    install_python_packages
+        # Verify repository was cloned successfully
+        if [ ! -f "$install_dir/install.py" ]; then
+            echo -e "\033[31mRepository clone seems incomplete. Missing install.py\033[0m"
+            rm -rf "$install_dir"
+            retry_count=$((retry_count + 1))
+            [ $retry_count -lt $max_retries ] && {
+                echo -e "\033[33mRetrying... (Attempt $retry_count)\033[0m"
+                sleep 2
+                continue
+            }
+            return 1
+        fi
 
-    echo -e "\033[33mRunning eGit installer...\033[0m"
-    cd "$install_dir"
-    
-    # Run installer with timeout
-    timeout 300 python3.10 install.py || {
-        echo -e "\033[31mInstallation timed out after 300 seconds.\033[0m"
-        echo -e "\033[31mThis might be due to Docker installation taking too long.\033[0m"
-        echo -e "\033[33mPlease try running 'python3.10 install.py' manually in $install_dir\033[0m"
-        exit 1
+        echo -e "\033[33mInstalling Python packages...\033[0m"
+        install_python_packages
+
+        echo -e "\033[33mRunning eGit installer...\033[0m"
+        cd "$install_dir"
+        
+        # Run installer with timeout
+        if timeout 300 python3.10 install.py; then
+            success=true
+        else
+            local exit_code=$?
+            if [ $exit_code -eq 124 ]; then
+                echo -e "\033[31mInstallation timed out after 300 seconds.\033[0m"
+                echo -e "\033[31mThis might be due to Docker installation taking too long.\033[0m"
+                echo -e "\033[33mPlease try running 'python3.10 install.py' manually in $install_dir\033[0m"
+                return 1
+            else
+                retry_count=$((retry_count + 1))
+                [ $retry_count -lt $max_retries ] && {
+                    echo -e "\033[33mRetrying... (Attempt $retry_count)\033[0m"
+                    sleep 2
+                    continue
+                }
+                return 1
+            fi
+        fi
+    done
+
+    [ "$success" = false ] && {
+        echo -e "\033[31mFailed to install after $max_retries attempts\033[0m"
+        return 1
     }
 }
 
@@ -147,7 +209,10 @@ main() {
         install_linux_deps
     fi
 
-    install_egit
+    install_egit || {
+        echo -e "\033[31mInstallation failed\033[0m"
+        exit 1
+    }
 
     echo -e "\n\033[32mInstallation complete!\033[0m"
     echo -e "\033[33mYou may need to restart your terminal for changes to take effect.\033[0m"
