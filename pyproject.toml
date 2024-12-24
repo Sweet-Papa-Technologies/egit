@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "egit"
+version = "0.1.0"
+authors = [
+    { name = "eGit Developer" },
+]
+description = "A CLI tool for enhanced Git operations with LLM support"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.7.0",
+    "gitpython>=3.1.40",
+    "litellm>=1.0.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "docker>=7.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.7.0",
+]
+
+[project.scripts]
+egit = "egit.cli:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
