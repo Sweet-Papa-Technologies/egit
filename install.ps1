@@ -89,7 +89,7 @@ function Install-eGit {
     $retryCount = 0
     $success = $false
 
-    while (-not $success -and $retryCount -lt $maxRetries) {
+    
         try {
             if (Test-Path $installDir) {
                 if (Test-Path (Join-Path $installDir ".git")) {
@@ -151,7 +151,7 @@ function Install-eGit {
             }
         }
     }
-}
+
 
 try {
     Install-Dependencies
