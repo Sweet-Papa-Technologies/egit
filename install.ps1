@@ -118,10 +118,8 @@ function Install-eGit {
 
             # Run installer directly with error capture
             try {
-                $output = python install.py 2>&1
-                if ($LASTEXITCODE -ne 0) {
-                    throw "Python installer failed with exit code $LASTEXITCODE`n$output"
-                }
+                python install.py 2>&1
+                
                 $success = $true
             }
             catch {
