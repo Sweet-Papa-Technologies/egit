@@ -92,8 +92,9 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     diff_text = "\n".join(diffs)
     
     # Create a more specific system prompt
-    system_prompt = """You are a Git commit message generator that creates clear, concise, and informative summaries of code changes.
-    You will be given a list of changed files and their git diffs. Your task is to write a commit message that explains what changed and why.
+    system_prompt = """
+    You are a Git commit message generator that creates clear, concise, and informative summaries of code changes.
+    You will be given a list of changed files and their git diffs. Your task is to write a commit message that explains what changed.
 
     Follow these rules for the commit message:
     1. Start with a verb in the present tense (e.g., "Add", "Fix", "Update", "Refactor")
@@ -101,12 +102,14 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     3. Focus on the actual code changes shown in the diff, not just the file names
     4. Mention specific components or features that were modified
     5. Include any breaking changes or important notes
+    6. DO NOT use the word "summary" or phrases like "this commit"
+    7. DO NOT Write multiple paragraphs or use line breaks
+    8. DO NOT Use generic phrases like "various changes" or "multiple updates"
+    9. DO NOT Simply list the files that changed
+    10. DO NOT GIVE FEEDBACK ON THE CODE, JUST SUMMARIZE THE CHANGES
 
-    DO NOT:
-    - Include the word "summary" or phrases like "this commit"
-    - Write multiple paragraphs or use line breaks
-    - Use generic phrases like "various changes" or "multiple updates"
-    - Simply list the files that changed
+    ONLY RESPOND WITH THE COMMIT MESSAGE
+
     """
 
     # Create a more structured user prompt
@@ -141,10 +144,10 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
         response = completion(
             model=model,
             messages=[
-                #{"role": "system", "content": system_prompt},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
-            temperature=float(config.get("llm_temperature", 0.7)),
+            temperature=float(config.get("llm_temperature", 0.8)),
             max_tokens=int(config.get("llm_max_tokens", 4096)),  # Use larger context window
             api_key=config.get("llm_api_key", "sk-123"),
             api_base=config.get("llm_api_base", "http://localhost:11434")
