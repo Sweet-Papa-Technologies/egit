@@ -137,10 +137,11 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     # Get response from LLM
     try:
         model = config.get("llm_model", "ollama/llama3.2:3b")
+        print(config.get("llm_model"))
         if config.get("llm_provider") == "ollama":
             # Strip 'openai/' prefix for Ollama models
             model = model.replace("openai/", "ollama/")
-            
+        print(model)
         response = completion(
             model=model,
             messages=[
