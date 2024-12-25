@@ -125,6 +125,12 @@ The message should be a single line.
 ONLY RESPOND WITH THE COMMIT MESSAGE
 """
 
+    print("Using the Following Prompt:")
+    print(prompt)
+
+    print("Using the Following System Prompt:")
+    print(system_prompt)
+
     # Get response from LLM
     try:
         model = config.get("llm_model", "ollama/llama3.2:3b")
