@@ -1,59 +1,68 @@
 """
-Git integration for eGit using GitPython
+Git operations module
 """
-from typing import List, Optional, Tuple
-from git import Repo, Git
-from git.exc import GitCommandError
+import subprocess
+from typing import List, Optional
 from pathlib import Path
-from .config import load_config
+from .config import get_config
 
 def get_git_executable() -> str:
     """Get Git executable path from config"""
-    config = load_config()
-    return config.git_executable
+    config = get_config()
+    return config.get("git_executable", "git")
 
-def get_repo(path: Optional[Path] = None) -> Repo:
-    """Get Git repository object"""
+def run_git_command(args: List[str], cwd: Optional[Path] = None) -> str:
+    """Run a git command and return its output"""
     try:
-        return Repo(path or Path.cwd(), search_parent_directories=True)
-    except Exception as e:
-        raise Exception(f"Error accessing Git repository: {str(e)}")
+        result = subprocess.run(
+            [get_git_executable()] + args,
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=cwd
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        if e.stderr:
+            raise Exception(e.stderr.strip())
+        raise e
 
-def get_commit_messages(commit: str = "HEAD") -> str:
-    """Get commit messages for a specific commit"""
-    try:
-        repo = get_repo()
-        commit_obj = repo.commit(commit)
-        return commit_obj.message
-    except Exception as e:
-        raise Exception(f"Error getting commit messages: {str(e)}")
+def get_commit_message(commit: str) -> str:
+    """Get the commit message for a given commit"""
+    return run_git_command(["log", "--format=%B", "-n", "1", commit])
 
-def get_commit_diff(commit1: str, commit2: str) -> str:
-    """Get diff between two commits"""
-    try:
-        repo = get_repo()
-        diff = repo.git.diff(commit1, commit2)
-        return diff
-    except Exception as e:
-        raise Exception(f"Error getting commit diff: {str(e)}")
+def get_commit_changes(commit: str) -> List[str]:
+    """Get the list of changes in a commit"""
+    output = run_git_command(["show", "--name-status", "--format=", commit])
+    return [line.strip() for line in output.splitlines() if line.strip()]
 
-def get_branch_commits(branch: Optional[str] = None) -> List[Tuple[str, str]]:
-    """Get all commits on a branch"""
-    try:
-        repo = get_repo()
-        if not branch:
-            branch = repo.active_branch.name
-        commits = list(repo.iter_commits(branch))
-        return [(commit.hexsha, commit.message) for commit in commits]
-    except Exception as e:
-        raise Exception(f"Error getting branch commits: {str(e)}")
+def get_staged_changes() -> List[str]:
+    """Get list of staged changes"""
+    output = run_git_command(["diff", "--cached", "--name-status"])
+    return [line.strip() for line in output.splitlines() if line.strip()]
 
-def execute_git_command(command: List[str]) -> str:
-    """Execute a Git command"""
+def get_branch_changes() -> List[str]:
+    """Get list of changes in current branch compared to main/master"""
     try:
-        git = Git(get_git_executable())
-        return git.execute(command)
-    except GitCommandError as e:
-        raise Exception(f"Git command error: {str(e)}")
-    except Exception as e:
-        raise Exception(f"Error executing Git command: {str(e)}")
+        # First try to compare with main
+        base_branch = "main"
+        output = run_git_command(["diff", "--name-status", f"{base_branch}...HEAD"])
+    except Exception:
+        try:
+            # If main doesn't exist, try master
+            base_branch = "master"
+            output = run_git_command(["diff", "--name-status", f"{base_branch}...HEAD"])
+        except Exception:
+            # If neither exists, show all changes in the current branch
+            output = run_git_command(["diff", "--name-status", "HEAD"])
+    
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
+def get_current_branch() -> str:
+    """Get the name of the current branch"""
+    return run_git_command(["rev-parse", "--abbrev-ref", "HEAD"])
+
+def get_repo_root() -> Path:
+    """Get the root directory of the git repository"""
+    output = run_git_command(["rev-parse", "--show-toplevel"])
+    return Path(output)

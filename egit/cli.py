@@ -8,8 +8,7 @@ from typing import Optional
 
 from . import __version__
 from . import git
-from . import db
-from . import llm
+from . import config as config_module  # Import as config_module to avoid name conflict
 
 app = typer.Typer(
     help="eGit - Enhanced Git CLI with LLM capabilities",
@@ -43,28 +42,64 @@ def common(
 
 @app.command()
 def summarize(
-    commit: str = typer.Argument(
-        ...,
-        help="Commit hash, branch name, or reference to summarize"
+    commit: Optional[str] = typer.Argument(
+        None,
+        help="Commit hash, branch name, or reference to summarize. If not provided, shows staged and current branch changes."
+    ),
+    staged: bool = typer.Option(
+        False,
+        "--staged",
+        "-s",
+        help="Show only staged changes"
+    ),
+    branch: bool = typer.Option(
+        False,
+        "--branch",
+        "-b",
+        help="Show only current branch changes"
     )
 ):
     """
-    Generate a natural language summary of changes in a commit or branch
+    Generate a natural language summary of changes in a commit, branch, or staged changes
     """
     try:
-        # Get the commit message and changes
-        message = git.get_commit_message(commit)
-        changes = git.get_commit_changes(commit)
-        
-        # Use LLM to generate summary
-        summary = llm.summarize_commits(message, changes)
-        console.print(f"[bold]Commit:[/bold] {commit}")
-        console.print(f"[bold]Message:[/bold] {message}")
-        console.print("\n[bold]Summary:[/bold]")
-        console.print(summary)
-        console.print("\n[bold]Changes:[/bold]")
-        for change in changes:
-            console.print(f"  {change}")
+        if commit:
+            # Summarize specific commit
+            message = git.get_commit_message(commit)
+            changes = git.get_commit_changes(commit)
+            
+            console.print(f"[bold]Commit:[/bold] {commit}")
+            console.print(f"[bold]Message:[/bold] {message}")
+        else:
+            changes = []
+            # Get staged changes if requested or if no specific option is chosen
+            if staged or (not staged and not branch):
+                staged_changes = git.get_staged_changes()
+                if staged_changes:
+                    console.print("\n[bold cyan]Staged Changes:[/bold cyan]")
+                    for change in staged_changes:
+                        console.print(f"  {change}")
+                    changes.extend(staged_changes)
+                else:
+                    console.print("[yellow]No staged changes found[/yellow]")
+
+            # Get current branch changes if requested or if no specific option is chosen
+            if branch or (not staged and not branch):
+                branch_changes = git.get_branch_changes()
+                if branch_changes:
+                    console.print("\n[bold green]Current Branch Changes:[/bold green]")
+                    for change in branch_changes:
+                        console.print(f"  {change}")
+                    changes.extend(branch_changes)
+                else:
+                    console.print("[yellow]No changes in current branch[/yellow]")
+
+        if changes:
+            # Generate and display summary
+            from . import llm
+            summary = llm.summarize_changes(changes)
+            console.print("\n[bold]Summary:[/bold]")
+            console.print(summary)
             
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
@@ -80,7 +115,7 @@ def config(
     set_key: Optional[str] = typer.Option(
         None,
         "--set",
-        help="Set configuration key (e.g., llm.model)"
+        help="Set configuration key (e.g., llm_model)"
     ),
     value: Optional[str] = typer.Option(
         None,
@@ -93,13 +128,16 @@ def config(
     try:
         if show:
             # Show current configuration
-            config = db.get_config()
+            current_config = config_module.get_config()
             console.print("[bold]Current Configuration:[/bold]")
-            for key, value in config.items():
-                console.print(f"  {key}: {value}")
+            for key, val in current_config.items():
+                # Don't show API keys
+                if 'api_key' in key.lower():
+                    val = '****' if val else ''
+                console.print(f"  {key}: {val}")
         elif set_key and value:
             # Set configuration value
-            db.set_config(set_key, value)
+            config_module.update_config(set_key, value)
             console.print(f"[green]Set {set_key} = {value}[/green]")
         else:
             # Show help if no valid options provided
