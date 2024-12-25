@@ -146,16 +146,16 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ]
-        
+
 
         # print("Using the Following Messages:")
-        print(MESSAGES)
+        # print(MESSAGES)
 
         response = completion(
             model=model,
             messages=MESSAGES,
             temperature=float(config.get("llm_temperature", 0.7)),
-            max_tokens=int(config.get("llm_max_tokens", 4096)),
+            max_tokens=int(config.get("llm_max_tokens", 8096)),
             api_key=config.get("llm_api_key", "sk-123"),
             api_base=config.get("llm_api_base", "http://localhost:11434")
         )
