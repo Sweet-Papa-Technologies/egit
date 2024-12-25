@@ -116,10 +116,13 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     prompt = f"""Here are the Git changes to summarize:
 
     Changed Files:
+    ```
     {changes_text}
-
+    ```
     Git Diff:
+    ```
     {diff_text}
+    ```
 
     Write a Git commit message that describes these changes.
     Focus on the actual code changes shown in the diff, not just which files were modified.
