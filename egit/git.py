@@ -151,6 +151,8 @@ def has_uncommitted_changes() -> bool:
 def push_tag(tag: str) -> None:
     """Push a specific tag to the remote"""
     run_git_command(["push", "origin", tag])
+    run_git_command(["push", "origin"])
+    run_git_command(["fetch", "origin"])
 
 def create_tag(tag: str, message: str) -> None:
     """Create an annotated tag with a message"""
