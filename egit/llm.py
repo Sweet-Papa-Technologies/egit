@@ -88,24 +88,25 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     setup_llm_env()
     
     # Prepare the prompt with both file changes and diffs
-    changes_text = "\n".join(f"  {change}" for change in changes)
-    diff_text = "\n".join(f"  {diff}" for diff in diffs)
+    changes_text = "\n".join(changes)
+    diff_text = "\n".join(diffs)
     
     # Create a more specific system prompt
     system_prompt = """You are a Git commit message generator that creates clear, concise, and informative summaries of code changes.
-Your summaries should:
-- Start with a verb in the present tense (e.g., "Add", "Fix", "Update", "Refactor")
-- Be no more than 72 characters for the first line
-- Focus on the "what" and "why" of the changes
-- Group related changes together
-- Mention specific components or areas that were modified
-- Include any breaking changes or important notes
+You will be given a list of changed files and their git diffs. Your task is to write a commit message that explains what changed and why.
+
+Follow these rules for the commit message:
+1. Start with a verb in the present tense (e.g., "Add", "Fix", "Update", "Refactor")
+2. Keep the first line under 72 characters
+3. Focus on the actual code changes shown in the diff, not just the file names
+4. Mention specific components or features that were modified
+5. Include any breaking changes or important notes
 
 DO NOT:
-- Simply list the files that changed
-- Include generic phrases like "various changes" or "multiple updates"
-- Write multiple paragraphs or use line breaks
 - Include the word "summary" or phrases like "this commit"
+- Write multiple paragraphs or use line breaks
+- Use generic phrases like "various changes" or "multiple updates"
+- Simply list the files that changed
 """
 
     # Create a more structured user prompt
@@ -114,12 +115,12 @@ DO NOT:
 Changed Files:
 {changes_text}
 
-Detailed Changes:
+Git Diff:
 {diff_text}
 
-Generate a clear and concise Git commit message that describes these changes.
-Focus on what was changed and why, not just which files were modified.
-The message should be suitable for a Git commit and follow conventional commit message guidelines."""
+Write a Git commit message that describes these changes.
+Focus on the actual code changes shown in the diff, not just which files were modified.
+The message should be a single line under 72 characters."""
 
     # Get response from LLM
     try:

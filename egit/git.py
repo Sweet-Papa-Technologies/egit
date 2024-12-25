@@ -54,7 +54,7 @@ def get_commit_changes(commit: str) -> List[str]:
 def get_commit_diff(commit: str) -> List[str]:
     """Get the full diff for a commit"""
     output = run_git_command(["show", "--patch", "--format=", commit])
-    return [line.strip() for line in output.splitlines() if line.strip()]
+    return output.splitlines()
 
 def get_staged_changes() -> List[str]:
     """Get list of staged changes"""
@@ -64,7 +64,7 @@ def get_staged_changes() -> List[str]:
 def get_staged_diff() -> List[str]:
     """Get full diff of staged changes"""
     output = run_git_command(["diff", "--cached", "--patch"])
-    return [line.strip() for line in output.splitlines() if line.strip()]
+    return output.splitlines()
 
 def get_branch_changes() -> List[str]:
     """Get list of changes in current branch compared to main/master"""
@@ -119,14 +119,14 @@ def get_branch_diff() -> List[str]:
         
         # Combine all diffs
         all_diffs = []
-        for line in output.splitlines() + staged_output.splitlines() + unstaged_output.splitlines():
-            if line.strip():
-                all_diffs.append(line.strip())
+        all_diffs.extend(output.splitlines())
+        all_diffs.extend(staged_output.splitlines())
+        all_diffs.extend(unstaged_output.splitlines())
         
         return all_diffs
     except Exception:
         # If getting uncommitted changes fails, just return branch diff
-        return [line.strip() for line in output.splitlines() if line.strip()]
+        return output.splitlines()
 
 def get_current_branch() -> str:
     """Get the name of the current branch"""
