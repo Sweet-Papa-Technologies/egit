@@ -146,6 +146,7 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ]
+        
 
         # print("Using the Following Messages:")
         print(MESSAGES)
