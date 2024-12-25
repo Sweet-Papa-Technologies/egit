@@ -54,10 +54,10 @@ async def get_llm_response(prompt: str, max_tokens: Optional[int] = None) -> str
     except Exception as e:
         raise Exception(f"Error getting LLM response: {str(e)}")
 
-async def summarize_commits(commit_messages: str) -> str:
-    """Summarize commit messages using LLM"""
-    prompt = SUMMARY_PROMPT.format(context=commit_messages)
-    return await get_llm_response(prompt)
+# async def summarize_commits(commit_messages: str) -> str:
+#     """Summarize commit messages using LLM"""
+#     prompt = SUMMARY_PROMPT.format(context=commit_messages)
+#     return await get_llm_response(prompt)
 
 # async def generate_release_notes(commit_messages: str) -> str:
 #     """Generate release notes from commit messages using LLM"""
@@ -147,7 +147,7 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
-            temperature=float(config.get("llm_temperature", 0.8)),
+            temperature=float(config.get("llm_temperature", 0.7)),
             max_tokens=int(config.get("llm_max_tokens", 4096)),  # Use larger context window
             api_key=config.get("llm_api_key", "sk-123"),
             api_base=config.get("llm_api_base", "http://localhost:11434")
