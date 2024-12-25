@@ -1,7 +1,7 @@
 """
 LLM integration for eGit using LiteLLM
 """
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from litellm import completion
 from .config import load_config, get_config
 import os
@@ -64,6 +64,17 @@ async def generate_release_notes(commit_messages: str) -> str:
     prompt = RELEASE_NOTES_PROMPT.format(context=commit_messages)
     return await get_llm_response(prompt)
 
+def get_llm_config() -> Dict[str, Any]:
+    """Get LLM configuration"""
+    config = get_config()
+    return {
+        "model": config.get("llm_model", "gpt-3.5-turbo"),
+        "api_base": config.get("llm_api_base"),
+        "api_key": config.get("llm_api_key"),
+        "max_tokens": int(config.get("llm_max_tokens", "500")),
+        "temperature": float(config.get("llm_temperature", "0.7")),
+    }
+
 def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     """Generate a natural language summary of the changes"""
     config = get_config()
@@ -119,3 +130,47 @@ Make the summary suitable for a commit message.
         return response.choices[0].message.content.strip()
     except Exception as e:
         return f"Error generating summary: {str(e)}"
+
+def generate_release_notes(commits: List[Dict[str, Any]], version: str) -> str:
+    """Generate release notes from a list of commits"""
+    llm_config = get_llm_config()
+    
+    # Format commits for the prompt
+    commit_list = []
+    for commit in commits:
+        commit_text = f"Commit: {commit['hash']}\n"
+        commit_text += f"Message: {commit['message']}\n"
+        if commit['body']:
+            commit_text += f"Details: {' '.join(commit['body'])}"
+        commit_list.append(commit_text)
+    
+    # Create the prompt
+    prompt = f"""As a technical writer, generate comprehensive release notes for version {version}.
+Analyze these commits and create well-organized, user-friendly release notes.
+
+Commits:
+{chr(10).join(commit_list)}
+
+Generate release notes that:
+1. Start with a brief version overview
+2. Group changes by type (Features, Bug Fixes, Documentation, etc.)
+3. Are clear and user-focused
+4. Include relevant technical details
+5. Follow a consistent format
+6. Are written in markdown
+"""
+
+    # Call the LLM
+    response = completion(
+        messages=[{
+            "role": "system",
+            "content": "You are an expert at writing clear, organized release notes that highlight important changes."
+        }, {
+            "role": "user",
+            "content": prompt
+        }],
+        **llm_config
+    )
+    
+    # Extract and return the release notes
+    return response.choices[0].message.content.strip()

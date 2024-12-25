@@ -53,6 +53,82 @@ def common(
     """
     pass
 
+@app.command()
+def release_notes(
+    version: str = typer.Argument(
+        ...,
+        help="Version number for the release (e.g., v1.0.0)"
+    ),
+    from_ref: Optional[str] = typer.Option(
+        None,
+        "--from",
+        help="Starting reference (commit/tag) for the release notes. Defaults to last tag."
+    ),
+    to_ref: Optional[str] = typer.Option(
+        None,
+        "--to",
+        help="Ending reference (commit/tag) for the release notes. Defaults to HEAD."
+    ),
+    create_tag: bool = typer.Option(
+        False,
+        "--tag",
+        "-t",
+        help="Create a git tag with the release notes"
+    ),
+    draft: bool = typer.Option(
+        False,
+        "--draft",
+        "-d",
+        help="Show draft release notes without creating a tag"
+    )
+):
+    """
+    Generate release notes for the specified version
+    """
+    try:
+        # Validate version format
+        if not version.startswith('v'):
+            version = f"v{version}"
+        
+        # Get commit range
+        if not from_ref:
+            # Get the last tag as the starting point
+            try:
+                from_ref = git.get_last_tag()
+            except Exception:
+                console.print("[yellow]No previous tags found, using root commit[/yellow]")
+                from_ref = git.get_root_commit()
+        
+        to_ref = to_ref or "HEAD"
+        
+        # Get all commits in the range
+        commits = git.get_commits_between(from_ref, to_ref)
+        if not commits:
+            console.print("[yellow]No commits found in the specified range[/yellow]")
+            raise typer.Exit(1)
+        
+        # Generate release notes
+        from . import llm
+        notes = llm.generate_release_notes(commits, version)
+        
+        # Show the release notes
+        console.print("\n[bold]Release Notes:[/bold]")
+        console.print(notes)
+        
+        # Create tag if requested
+        if create_tag and not draft:
+            try:
+                git.create_tag(version, notes)
+                console.print(f"\n[green]Created tag {version} with release notes![/green]")
+            except Exception as e:
+                console.print(f"[red]Error creating tag:[/red] {str(e)}")
+                raise typer.Exit(1)
+        elif draft:
+            console.print("\n[yellow]Draft mode - no tag created[/yellow]")
+            
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {str(e)}")
+        raise typer.Exit(1)
 
 @app.command()
 def summarize(
@@ -189,19 +265,16 @@ def config(
 def main():
     """Main entry point for the CLI"""
     # Print the version if requested
-    console.print(f"[green]eGit version: {__version__}[/green]")
-    console.print(sys.argv)
+    if len(sys.argv) > 1 and sys.argv[1] in ['-v', '--version']:
+        console.print(f"[green]eGit version: {__version__}[/green]")
+        return
 
-    # If no arguments, show help
-
+    # If no arguments or help requested, show help
     if len(sys.argv) == 1 or sys.argv[1] in ['-h', '--help']:
         app(['--help'])
         return
 
-    # Get the command (first argument after the script name)
-    command = sys.argv[1]
-
-    # If it's an eGit command, handle it with our app
+    # Run the app
     app()
 
 if __name__ == "__main__":

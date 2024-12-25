@@ -2,7 +2,7 @@
 Git operations module
 """
 import subprocess
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pathlib import Path
 from .config import get_config
 
@@ -97,3 +97,47 @@ def get_repo_root() -> Path:
 def commit(message: str) -> None:
     """Create a new commit with the given message"""
     run_git_command(["commit", "-m", message])
+
+def get_last_tag() -> str:
+    """Get the most recent tag"""
+    return run_git_command(["describe", "--tags", "--abbrev=0"])
+
+def get_root_commit() -> str:
+    """Get the first commit in the repository"""
+    return run_git_command(["rev-list", "--max-parents=0", "HEAD"])
+
+def get_commits_between(from_ref: str, to_ref: str) -> List[Dict[str, Any]]:
+    """Get all commits between two references"""
+    output = run_git_command([
+        "log",
+        "--format=%H%n%s%n%b%n---%n",
+        f"{from_ref}..{to_ref}"
+    ])
+    
+    commits = []
+    current_commit = {}
+    
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+        
+        if line == "---":
+            if current_commit:
+                commits.append(current_commit)
+                current_commit = {}
+        elif not current_commit:
+            current_commit = {"hash": line, "message": "", "body": []}
+        elif "message" not in current_commit:
+            current_commit["message"] = line
+        else:
+            current_commit["body"].append(line)
+    
+    # Add the last commit if there is one
+    if current_commit:
+        commits.append(current_commit)
+    
+    return commits
+
+def create_tag(tag: str, message: str) -> None:
+    """Create an annotated tag with a message"""
+    run_git_command(["tag", "-a", tag, "-m", message])
