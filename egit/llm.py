@@ -120,7 +120,10 @@ Git Diff:
 
 Write a Git commit message that describes these changes.
 Focus on the actual code changes shown in the diff, not just which files were modified.
-The message should be a single line under 72 characters."""
+The message should be a single line.
+
+ONLY RETURN THE COMMIT MESSAGE
+"""
 
     # Get response from LLM
     try:
@@ -147,8 +150,6 @@ The message should be a single line under 72 characters."""
         # Ensure it's not too long and doesn't contain newlines
         if "\n" in summary:
             summary = summary.split("\n")[0]
-        if len(summary) > 72:
-            summary = summary[:69] + "..."
             
         return summary
     except Exception as e:
