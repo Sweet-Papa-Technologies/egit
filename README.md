@@ -85,9 +85,6 @@ git push
 # Generate release notes for version (draft mode)
 egit release-notes 1.0.0 --draft
 
-# Generate notes from specific range
-egit release-notes 1.0.0 --from v0.9.0 --to main
-
 # Create and push an annotated tag with release notes
 egit release-notes 1.0.0 --tag
 ```

@@ -5,10 +5,9 @@
 ### Commands
 [x] WORKING - `egit summarize --staged`
 [x] WORKING - `egit summarize --branch`
-[] UNTESTED - `egit summarize --commit`
-[] UNTESTED - `egit release-notes 1.0.0 --draft`
-[] UNTESTED - `egit release-notes 1.0.0 --from v0.9.0 --to main`
-[] UNTESTED - `egit release-notes 1.0.0 --tag`
+[X] WORKING - `egit summarize --commit`
+[X] WORKING - `egit release-notes 1.0.0 --draft`
+[X] WORKING - `egit release-notes 0.4.3 --tag`
 [x] WORKING - `egit --help`
 [x] WORKING - `egit config --show`
 [x] WORKING - `egit config --help`
