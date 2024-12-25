@@ -114,6 +114,23 @@ egit -v
 - `LLM_MAX_TOKENS`: Maximum tokens for LLM response (default: 4096)
 - `LLM_TEMPERATURE`: Temperature for LLM sampling (default: 0.7)
 
+## Example LLM Provider Setup
+
+### Ollama
+```bash
+egit config --set llm_provider ollama
+egit config --set llm_model ollama/llama3.2:3b
+egit config --set llm_api_key sk-123
+egit config --set llm_api_base http://localhost:11434
+```
+
+### LM Studio
+```bash
+egit config --set llm_provider lmstudio
+egit config --set llm_model lm_studio/hermes-3-llama-3.1-8b
+egit config --set llm_api_key sk-123
+egit config --set llm_api_base --value http://localhost:1221/v1
+```
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
