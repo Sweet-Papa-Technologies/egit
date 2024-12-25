@@ -146,11 +146,7 @@ ONLY RETURN THE COMMIT MESSAGE
         
         # Clean up the response
         summary = response.choices[0].message.content.strip()
-        
-        # Ensure it's not too long and doesn't contain newlines
-        if "\n" in summary:
-            summary = summary.split("\n")[0]
-            
+                
         return summary
     except Exception as e:
         return f"Error generating summary: {str(e)}"
