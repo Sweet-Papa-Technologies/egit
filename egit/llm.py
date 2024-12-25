@@ -7,7 +7,7 @@ from .config import load_config, get_config
 import os
 
 SUMMARY_PROMPT = """
-You are a helpful assistant that summarizes GitLab commit messages. Please summarize all of the changes this person has made to their code based off the commit messages.
+You are a helpful assistant that summarizes Git commit messages. Please summarize all of the changes this person has made to their code based off the commit messages.
 {context}
 """
 
@@ -97,7 +97,7 @@ You will be given a list of changed files and their git diffs. Your task is to w
 
 Follow these rules for the commit message:
 1. Start with a verb in the present tense (e.g., "Add", "Fix", "Update", "Refactor")
-2. Keep the first line under 72 characters
+2. Do not use words like "seems" or "appears", speak with confidence
 3. Focus on the actual code changes shown in the diff, not just the file names
 4. Mention specific components or features that were modified
 5. Include any breaking changes or important notes
