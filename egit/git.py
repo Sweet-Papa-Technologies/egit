@@ -156,4 +156,9 @@ def create_tag(tag: str, message: str) -> None:
     """Create an annotated tag with a message"""
     if has_uncommitted_changes():
         raise Exception("You have uncommitted changes. Please commit or stash them before creating a tag.")
-    run_git_command(["tag", "-a", tag, "-m", message])
+    
+    # Get the current HEAD commit
+    head_commit = run_git_command(["rev-parse", "HEAD"])
+    
+    # Create tag on the current HEAD
+    run_git_command(["tag", "-a", tag, head_commit, "-m", message])
