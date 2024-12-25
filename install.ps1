@@ -72,7 +72,7 @@ function Install-Dependencies {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
 
     Write-Host "Installing Docker..." -ForegroundColor Yellow
-    choco install docker-desktop -y
+    choco install docker-desktop -fdvy
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
 }
 
