@@ -138,13 +138,14 @@ def get_commits_between(from_ref: str, to_ref: str) -> List[Dict[str, Any]]:
     
     return commits
 
-def has_staged_changes() -> bool:
-    """Check if there are any staged changes"""
+def has_uncommitted_changes() -> bool:
+    """Check if there are any uncommitted changes (staged or unstaged)"""
     try:
-        output = run_git_command(["diff", "--cached", "--quiet"])
+        # Check both staged and unstaged changes
+        run_git_command(["diff-index", "--quiet", "HEAD"])
         return False
     except subprocess.CalledProcessError:
-        # Exit code 1 means there are staged changes
+        # Exit code 1 means there are uncommitted changes
         return True
 
 def push_tag(tag: str) -> None:
@@ -153,6 +154,6 @@ def push_tag(tag: str) -> None:
 
 def create_tag(tag: str, message: str) -> None:
     """Create an annotated tag with a message"""
-    if not has_staged_changes():
-        raise Exception("No staged changes found. Please stage and commit your changes before creating a tag.")
+    if has_uncommitted_changes():
+        raise Exception("You have uncommitted changes. Please commit or stash them before creating a tag.")
     run_git_command(["tag", "-a", tag, "-m", message])
