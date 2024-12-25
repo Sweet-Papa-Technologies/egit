@@ -7,6 +7,7 @@ import typer
 from rich.console import Console
 from rich.progress import Progress
 from rich import print as rprint
+from . import __version__
 from .config import update_config, get_config_value
 from .git import get_commit_messages, get_commit_diff, get_branch_commits, execute_git_command
 from .llm import summarize_commits, generate_release_notes
@@ -14,6 +15,31 @@ from .db import init_db, save_message, get_message
 
 app = typer.Typer(help="eGit - Enhanced Git CLI with LLM capabilities")
 console = Console()
+
+def version_callback(value: bool):
+    """Show version and exit"""
+    if value:
+        rprint(f"[green]eGit version: {__version__}[/green]")
+        raise typer.Exit()
+
+@app.callback(invoke_without_command=True)
+def main(
+    ctx: typer.Context,
+    version: Optional[bool] = typer.Option(None, "--version", "-v", callback=version_callback, help="Show version and exit"),
+):
+    """Initialize database and handle Git passthrough"""
+    if ctx.invoked_subcommand is None and not version:
+        # Initialize database
+        init_db()
+        
+        # Pass through to Git if no eGit command is specified
+        try:
+            import sys
+            result = execute_git_command(sys.argv[1:])
+            if result:
+                print(result)
+        except Exception as e:
+            rprint(f"[red]Error: {str(e)}[/red]")
 
 @app.command()
 def summarize(commit: str = "HEAD"):
@@ -109,22 +135,6 @@ def config(key: Optional[str] = None, value: Optional[str] = None):
             rprint(f"[red]Error getting config: {str(e)}[/red]")
     else:
         rprint("[yellow]Please provide a key to get or set configuration[/yellow]")
-
-@app.callback(invoke_without_command=True)
-def main(ctx: typer.Context):
-    """Initialize database and handle Git passthrough"""
-    if ctx.invoked_subcommand is None:
-        # Initialize database
-        init_db()
-        
-        # Pass through to Git if no eGit command is specified
-        try:
-            import sys
-            result = execute_git_command(sys.argv[1:])
-            if result:
-                print(result)
-        except Exception as e:
-            rprint(f"[red]Error: {str(e)}[/red]")
 
 if __name__ == "__main__":
     app()

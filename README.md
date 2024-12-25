@@ -111,6 +111,14 @@ egit add .
 egit commit -m "feat: add new feature"
 ```
 
+### Version Information
+Get the current version of eGit:
+```bash
+egit --version
+# or
+egit -v
+```
+
 ## Environment Variables
 
 - `GIT_EXECUTABLE`: Path to Git executable (default: system git)
