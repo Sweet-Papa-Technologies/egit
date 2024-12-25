@@ -26,42 +26,38 @@ eGit is a powerful CLI tool that enhances Git with LLM capabilities, making it e
 
 ### Windows
 ```powershell
-# Install Python 3.10 if not installed
-choco install python310
+# Download eGit
+git clone https://github.com/Sweet-Papa-Technologies/egit.git
+cd egit
 
-# Install Git if not installed
-choco install git
-
-# Install eGit
-python install.py
+# Run the installer
+.\install.ps1
 ```
 
-### macOS
+### macOS/Linux
 ```bash
-# Install Homebrew if not installed
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# Download eGit
+git clone https://github.com/Sweet-Papa-Technologies/egit.git
+cd egit
 
-# Install Python 3.10 if not installed
-brew install python@3.10
+# Make the installer executable
+chmod +x install.sh
 
-# Install Git if not installed
-brew install git
-
-# Install eGit
-python3 install.py
+# Run the installer
+./install.sh
 ```
 
-### Linux (Debian/Ubuntu)
-```bash
-# Install Git if not installed
-sudo apt-get install git
+The installer will:
+1. Check for Python 3.10+ and Git
+2. Create a virtual environment
+3. Install required dependencies
+4. Install eGit in development mode
+5. Add eGit to your PATH (may require admin privileges on Windows)
 
-# Install Python 3.10 if not installed
-# Download from https://www.python.org/downloads/release/python-31013/
-
-# Install eGit
-python3 install.py
-```
+### Manual PATH Configuration
+If you don't have admin privileges on Windows, you can manually add eGit to your PATH:
+1. Run the `setx` command shown during installation as administrator, or
+2. Add the installation directory to your PATH environment variable
 
 ## Configuration
 

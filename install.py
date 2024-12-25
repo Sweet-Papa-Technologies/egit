@@ -7,10 +7,8 @@ import subprocess
 import platform
 from pathlib import Path
 import shutil
-import venv
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
-import site
 
 console = Console()
 
@@ -21,22 +19,6 @@ def is_admin() -> bool:
     except AttributeError:
         import ctypes
         return ctypes.windll.shell32.IsUserAnAdmin() != 0
-
-def check_python_version():
-    """Check if Python version is 3.10 or higher"""
-    if sys.version_info < (3, 10):
-        console.print("[red]❌ Python 3.10 or higher is required[/red]")
-        sys.exit(1)
-    console.print("[green]✓ Python version check passed[/green]")
-
-def check_git_installation():
-    """Check if Git is installed"""
-    try:
-        subprocess.run(["git", "--version"], check=True, capture_output=True)
-        console.print("[green]✓ Git installation check passed[/green]")
-    except subprocess.CalledProcessError:
-        console.print("[red]❌ Git is not installed[/red]")
-        sys.exit(1)
 
 def get_install_dir() -> Path:
     """Get installation directory based on platform"""
@@ -108,40 +90,37 @@ def copy_package_files(install_dir: Path):
         if src.exists():
             shutil.copy2(src, install_dir / file)
 
-def setup_venv(install_dir: Path):
-    """Create and setup virtual environment"""
-    venv_dir = install_dir / ".venv"
-    
+def install_package(install_dir: Path):
+    """Install the package in development mode"""
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         console=console
     ) as progress:
-        # Create virtual environment if it doesn't exist
-        if not venv_dir.exists():
-            task = progress.add_task("Creating virtual environment...", total=None)
-            venv.create(venv_dir, with_pip=True)
-            progress.remove_task(task)
+        task = progress.add_task("Installing eGit package...", total=None)
         
-        # Get pip path
-        if platform.system().lower() == "windows":
-            pip_path = venv_dir / "Scripts" / "pip.exe"
-        else:
-            pip_path = venv_dir / "bin" / "pip"
+        # First install requirements
+        subprocess.run([
+            sys.executable, "-m", "pip", "install", "-r", 
+            str(install_dir / "requirements.txt")
+        ], check=True, encoding="utf-8")
         
-        # Install/upgrade requirements
-        task = progress.add_task("Installing/upgrading dependencies...", total=None)
-        subprocess.run([str(pip_path), "install", "--upgrade", "-r", str(install_dir / "requirements.txt")], check=True)
+        # Then install the package itself
+        subprocess.run([
+            sys.executable, "setup.py", "develop"
+        ], check=True, cwd=str(install_dir), encoding="utf-8")
+        
         progress.remove_task(task)
 
-def add_to_path(install_dir: Path):
-    """Add eGit to system PATH"""
+def add_to_path(install_dir: Path) -> bool:
+    """Add eGit to system PATH. Returns True if PATH was modified, False otherwise."""
     system = platform.system().lower()
     
     if system == "windows":
         if not is_admin():
-            console.print("[yellow]⚠️ Admin privileges required to modify PATH[/yellow]")
-            return
+            console.print("[yellow]⚠️ To add eGit to PATH, run the following command as administrator:[/yellow]")
+            console.print(f'[cyan]setx /M PATH "%PATH%;{install_dir}"[/cyan]')
+            return False
         
         import winreg
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment", 0, winreg.KEY_ALL_ACCESS) as key:
@@ -149,19 +128,17 @@ def add_to_path(install_dir: Path):
             if str(install_dir) not in current_path:
                 new_path = f"{current_path};{install_dir}"
                 winreg.SetValueEx(key, "PATH", 0, winreg.REG_EXPAND_SZ, new_path)
+        return True
     else:
         # Add to .bashrc or .zshrc
         shell_rc = Path.home() / (".zshrc" if os.path.exists(Path.home() / ".zshrc") else ".bashrc")
         with open(shell_rc, "a") as f:
             f.write(f'\nexport PATH="$PATH:{install_dir}"\n')
+        return True
 
 def main():
     """Main installation function"""
     console.print("[bold cyan]🚀 Installing eGit...[/bold cyan]")
-    
-    # Check requirements
-    check_python_version()
-    check_git_installation()
     
     # Get installation directory
     install_dir = get_install_dir()
@@ -179,17 +156,26 @@ def main():
     # Copy package files
     copy_package_files(install_dir)
     
-    # Setup/update virtual environment
-    setup_venv(install_dir)
+    # Install the package
+    install_package(install_dir)
     
     if updating:
         # Restore configuration
         restore_config(install_dir)
         console.print("[bold green]✨ eGit update complete![/bold green]")
-    else:
+    
+    try:
         # Add to PATH for new installations
-        add_to_path(install_dir)
+        path_added = add_to_path(install_dir)
         console.print("[bold green]✨ eGit installation complete![/bold green]")
+            
+        # Show PATH usage instructions if not added automatically
+        if not path_added and platform.system().lower() == "windows":
+            console.print("\n[yellow]To use eGit from any directory, either:[/yellow]")
+            console.print("1. Run the setx command shown above as administrator")
+            console.print(f"2. Or manually add [cyan]{install_dir}[/cyan] to your PATH environment variable")
+    except Exception as e:
+        console.print(f"[yellow]Error adding eGit to PATH: {str(e)}[/yellow]")
     
     console.print("\nTo get started, try:")
     console.print("  egit --help")

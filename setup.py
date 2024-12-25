@@ -2,6 +2,11 @@
 Setup script for eGit
 """
 from setuptools import setup, find_packages
+from pathlib import Path
+
+# Read README with proper encoding
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="egit",
@@ -26,7 +31,7 @@ setup(
     author="Forrester Terry",
     author_email="fterry@sweetpapatechnologies.com",
     description="Enhanced Git CLI with LLM capabilities",
-    long_description=open("README.md").read(),
+    long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Sweet-Papa-Technologies/egit",
     classifiers=[
