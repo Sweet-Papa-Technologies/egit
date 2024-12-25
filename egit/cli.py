@@ -104,6 +104,13 @@ def release_notes(
                 if typer.confirm("Commit these changes?"):
                     # Generate commit message
                     diffs = git.get_staged_diff()
+                    console.print("\n[yellow]Staged Changes:[/yellow]")
+                    for change in staged_changes:
+                        console.print(f"  {change}")
+                    console.print(f"[yellow]Commit Diff:[/yellow]")
+                    for diff in diffs:
+                        console.print(f"  {diff}")
+                    
                     from . import llm
                     commit_msg = llm.summarize_changes(staged_changes, diffs)
                     git.commit(commit_msg)
