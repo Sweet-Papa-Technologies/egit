@@ -1,116 +1,130 @@
-"""CLI interface for eGit."""
-
+"""
+CLI interface for eGit
+"""
 import asyncio
-import sys
-from typing import List, Optional
-
+from typing import Optional
 import typer
 from rich.console import Console
-from rich.panel import Panel
+from rich.progress import Progress
+from rich import print as rprint
+from .config import update_config, get_config_value
+from .git import get_commit_messages, get_commit_diff, get_branch_commits, execute_git_command
+from .llm import summarize_commits, generate_release_notes
+from .db import init_db, save_message, get_message
 
-from egit import git, llm, docker
-
-app = typer.Typer(
-    name="egit",
-    help="Enhanced Git CLI with LLM support",
-    add_completion=False,
-)
+app = typer.Typer(help="eGit - Enhanced Git CLI with LLM capabilities")
 console = Console()
 
-
-def ensure_resources() -> bool:
-    """Ensure all required resources are running."""
-    if not docker.ensure_ollama_running():
-        console.print("[red]Failed to start Ollama container[/red]")
-        return False
-    return True
-
-
-@app.command("summarize")
-def summarize(
-    commit_range: Optional[str] = typer.Argument(
-        None,
-        help="Commit range to summarize (e.g., HEAD~3..HEAD)",
-    ),
-):
-    """Summarize Git changes using LLM."""
+@app.command()
+def summarize(commit: str = "HEAD"):
+    """Summarize committed changes using LLM"""
     try:
-        if not ensure_resources():
-            sys.exit(1)
-            
-        repo = git.get_repo()
-        diff = git.get_diff(repo, commit_range)
-        if not diff:
-            console.print("[yellow]No changes to summarize[/yellow]")
+        # Check cache first
+        cached = get_message(commit)
+        if cached:
+            rprint(f"[green]✨ Found cached summary for commit {commit}:[/green]")
+            rprint(cached.generated_message)
             return
 
-        with console.status("[bold green]Generating summary..."):
-            summary = asyncio.run(llm.summarize_changes(diff))
-
-        console.print(Panel(
-            summary,
-            title="[bold]Change Summary",
-            border_style="green",
-        ))
-
-    except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
-        sys.exit(1)
-
-
-@app.command("summarize-diff")
-def summarize_diff(
-    commit1: str = typer.Argument(..., help="First commit"),
-    commit2: str = typer.Argument(..., help="Second commit"),
-):
-    """Show and summarize changes between two commits."""
-    try:
-        if not ensure_resources():
-            sys.exit(1)
+        with Progress() as progress:
+            task = progress.add_task("[cyan]Getting commit summary...", total=None)
             
-        repo = git.get_repo()
-        diff = git.get_diff(repo, f"{commit1}..{commit2}")
-        if not diff:
-            console.print("[yellow]No changes between commits[/yellow]")
-            return
-
-        console.print(Panel(
-            diff,
-            title="[bold]Git Diff",
-            border_style="blue",
-        ))
-
-        with console.status("[bold green]Generating summary..."):
-            summary = asyncio.run(llm.summarize_changes(diff))
-
-        console.print(Panel(
-            summary,
-            title="[bold]Change Summary",
-            border_style="green",
-        ))
-
+            # Get commit messages
+            messages = get_commit_messages(commit)
+            
+            # Get summary from LLM
+            summary = asyncio.run(summarize_commits(messages))
+            
+            # Save to database
+            save_message(commit, messages, summary, "summarize")
+            
+            progress.remove_task(task)
+            
+        rprint(f"[green]✨ Summary for commit {commit}:[/green]")
+        rprint(summary)
+            
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
-        sys.exit(1)
+        rprint(f"[red]Error: {str(e)}[/red]")
 
+@app.command()
+def summarize_diff(commit1: str, commit2: str):
+    """Show and summarize changes between two commits"""
+    try:
+        with Progress() as progress:
+            task = progress.add_task("[cyan]Analyzing diff...", total=None)
+            
+            # Get diff
+            diff = get_commit_diff(commit1, commit2)
+            
+            # Get summary from LLM
+            summary = asyncio.run(summarize_commits(diff))
+            
+            progress.remove_task(task)
+            
+        rprint(f"[green]✨ Changes between {commit1} and {commit2}:[/green]")
+        rprint(summary)
+            
+    except Exception as e:
+        rprint(f"[red]Error: {str(e)}[/red]")
 
-def main():
-    """Main entry point for the CLI."""
-    args = sys.argv[1:]
-    
-    # If no arguments or help is requested, show eGit help
-    if not args or args[0] in ["-h", "--help"]:
-        app()
-        return
+@app.command()
+def release_notes(branch: Optional[str] = None):
+    """Generate release notes for a branch"""
+    try:
+        with Progress() as progress:
+            task = progress.add_task("[cyan]Generating release notes...", total=None)
+            
+            # Get all commits on branch
+            commits = get_branch_commits(branch)
+            commit_messages = "\n".join([f"{sha}: {msg}" for sha, msg in commits])
+            
+            # Generate release notes
+            notes = asyncio.run(generate_release_notes(commit_messages))
+            
+            progress.remove_task(task)
+            
+        rprint("[green]✨ Release Notes:[/green]")
+        rprint(notes)
+            
+    except Exception as e:
+        rprint(f"[red]Error: {str(e)}[/red]")
 
-    # If the command is not an eGit command, pass through to Git
-    if args[0] not in app.registered_commands:
-        returncode, stdout, stderr = git.pass_through(args)
-        if stdout:
-            console.print(stdout, end="")
-        if stderr:
-            console.print(stderr, end="", style="red")
-        sys.exit(returncode)
-    
-    # Otherwise, run the eGit command
-    app(args)
+@app.command()
+def config(key: Optional[str] = None, value: Optional[str] = None):
+    """Get or set configuration values"""
+    if key and value:
+        try:
+            update_config(key, value)
+            rprint(f"[green]✨ Updated {key} to {value}[/green]")
+        except Exception as e:
+            rprint(f"[red]Error updating config: {str(e)}[/red]")
+    elif key:
+        try:
+            value = get_config_value(key)
+            if value:
+                rprint(f"[green]{key}:[/green] {value}")
+            else:
+                rprint(f"[yellow]No value set for {key}[/yellow]")
+        except Exception as e:
+            rprint(f"[red]Error getting config: {str(e)}[/red]")
+    else:
+        rprint("[yellow]Please provide a key to get or set configuration[/yellow]")
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context):
+    """Initialize database and handle Git passthrough"""
+    if ctx.invoked_subcommand is None:
+        # Initialize database
+        init_db()
+        
+        # Pass through to Git if no eGit command is specified
+        try:
+            import sys
+            result = execute_git_command(sys.argv[1:])
+            if result:
+                print(result)
+        except Exception as e:
+            rprint(f"[red]Error: {str(e)}[/red]")
+
+if __name__ == "__main__":
+    app()

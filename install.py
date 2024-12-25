@@ -1,295 +1,129 @@
-#!/usr/bin/env python3
-"""Installer script for eGit."""
-
+"""
+Installer script for eGit
+"""
 import os
-import platform
-import subprocess
 import sys
+import subprocess
+import platform
 from pathlib import Path
-from typing import List, Optional
-
+import shutil
+import venv
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
+import site
 
 console = Console()
-MINIMUM_PYTHON_VERSION = (3, 10)
 
-
-def run_command(
-    cmd: List[str],
-    cwd: Optional[str] = None,
-    shell: bool = False,
-    check: bool = True,
-) -> subprocess.CompletedProcess:
-    """Run a command and return the result."""
+def is_admin() -> bool:
+    """Check if script has admin privileges"""
     try:
-        return subprocess.run(
-            cmd,
-            cwd=cwd,
-            shell=shell,
-            check=check,
-            capture_output=True,
-            text=True,
-        )
-    except subprocess.CalledProcessError as e:
-        console.print(f"[red]Error running command: {' '.join(cmd)}[/red]")
-        console.print(f"[red]Error: {e.stderr}[/red]")
-        raise
+        return os.getuid() == 0
+    except AttributeError:
+        import ctypes
+        return ctypes.windll.shell32.IsUserAnAdmin() != 0
 
+def check_python_version():
+    """Check if Python version is 3.10 or higher"""
+    if sys.version_info < (3, 10):
+        console.print("[red]❌ Python 3.10 or higher is required[/red]")
+        sys.exit(1)
+    console.print("[green]✓ Python version check passed[/green]")
 
-def is_command_available(cmd: str) -> bool:
-    """Check if a command is available in the system PATH."""
+def check_git_installation():
+    """Check if Git is installed"""
     try:
-        subprocess.run(
-            ["where" if platform.system() == "Windows" else "which", cmd],
-            capture_output=True,
-            check=True,
-        )
-        return True
+        subprocess.run(["git", "--version"], check=True, capture_output=True)
+        console.print("[green]✓ Git installation check passed[/green]")
     except subprocess.CalledProcessError:
-        return False
-
-
-def install_chocolatey() -> None:
-    """Install Chocolatey on Windows."""
-    if is_command_available("choco"):
-        return
-
-    console.print("🍫 Installing Chocolatey...")
-    powershell_cmd = (
-        'Set-ExecutionPolicy Bypass -Scope Process -Force; '
-        '[System.Net.ServicePointManager]::SecurityProtocol = '
-        '[System.Net.ServicePointManager]::SecurityProtocol -bor 3072; '
-        'iex ((New-Object System.Net.WebClient).DownloadString('
-        "'https://community.chocolatey.org/install.ps1'))"
-    )
-    
-    run_command(
-        ["powershell", "-Command", powershell_cmd],
-        shell=True,
-    )
-
-
-def install_homebrew() -> None:
-    """Install Homebrew on macOS."""
-    if is_command_available("brew"):
-        return
-
-    console.print("🍺 Installing Homebrew...")
-    install_cmd = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
-    run_command(install_cmd, shell=True)
-
-
-def install_windows_dependencies() -> None:
-    """Install dependencies on Windows."""
-    install_chocolatey()
-    
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        # Install WSL2
-        if not is_command_available("wsl"):
-            task = progress.add_task("Installing WSL2...", total=None)
-            run_command(["choco", "install", "wsl2", "-y"])
-            progress.update(task, completed=True)
-
-        # Install Python
-        if not is_command_available("python3.10"):
-            task = progress.add_task("Installing Python 3.10...", total=None)
-            run_command(["choco", "install", "python310", "-y"])
-            progress.update(task, completed=True)
-
-        # Install Docker
-        if not is_command_available("docker"):
-            task = progress.add_task("Installing Docker...", total=None)
-            run_command(["choco", "install", "docker", "-y"])
-            progress.update(task, completed=True)
-
-        # Install Git
-        if not is_command_available("git"):
-            task = progress.add_task("Installing Git...", total=None)
-            run_command(["choco", "install", "git", "-y"])
-            progress.update(task, completed=True)
-
-
-def install_macos_dependencies() -> None:
-    """Install dependencies on macOS."""
-    install_homebrew()
-    
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        # Install Python
-        if not is_command_available("python3.10"):
-            task = progress.add_task("Installing Python 3.10...", total=None)
-            run_command(["brew", "install", "python@3.10"])
-            progress.update(task, completed=True)
-
-        # Install Docker
-        if not is_command_available("docker"):
-            task = progress.add_task("Installing Docker...", total=None)
-            run_command(["brew", "install", "docker"])
-            progress.update(task, completed=True)
-
-        # Install Git
-        if not is_command_available("git"):
-            task = progress.add_task("Installing Git...", total=None)
-            run_command(["brew", "install", "git"])
-            progress.update(task, completed=True)
-
-
-def install_linux_dependencies() -> None:
-    """Install dependencies on Linux."""
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        # Update package list
-        task = progress.add_task("Updating package list...", total=None)
-        run_command(["sudo", "apt-get", "update"])
-        progress.update(task, completed=True)
-
-        # Install Python
-        if not is_command_available("python3.10"):
-            task = progress.add_task("Installing Python 3.10...", total=None)
-            run_command(["sudo", "apt-get", "install", "-y", "python3.10"])
-            progress.update(task, completed=True)
-
-        # Install Docker
-        if not is_command_available("docker"):
-            task = progress.add_task("Installing Docker...", total=None)
-            # Add Docker's official GPG key
-            run_command([
-                "curl", "-fsSL", "https://download.docker.com/linux/ubuntu/gpg",
-                "|", "sudo", "gpg", "--dearmor", "-o",
-                "/usr/share/keyrings/docker-archive-keyring.gpg"
-            ], shell=True)
-            
-            # Add Docker repository
-            run_command([
-                'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] '
-                'https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | '
-                'sudo tee /etc/apt/sources.list.d/docker.list > /dev/null'
-            ], shell=True)
-            
-            # Install Docker
-            run_command(["sudo", "apt-get", "update"])
-            run_command([
-                "sudo", "apt-get", "install", "-y",
-                "docker-ce", "docker-ce-cli", "containerd.io"
-            ])
-            
-            # Add user to docker group
-            run_command(["sudo", "usermod", "-aG", "docker", "$USER"])
-            progress.update(task, completed=True)
-
-        # Install Git
-        if not is_command_available("git"):
-            task = progress.add_task("Installing Git...", total=None)
-            run_command(["sudo", "apt-get", "install", "-y", "git"])
-            progress.update(task, completed=True)
-
-
-def install_nvidia_toolkit() -> None:
-    """Install NVIDIA Container Toolkit."""
-    if platform.system() == "Windows":
-        return  # NVIDIA toolkit is handled by Docker Desktop on Windows
-    
-    try:
-        # Check if nvidia-smi is available
-        run_command(["nvidia-smi"])
-    except subprocess.CalledProcessError:
-        return  # No NVIDIA GPU available
-    
-    console.print("🎮 Installing NVIDIA Container Toolkit...")
-    
-    # Add NVIDIA Container Toolkit repository
-    run_command([
-        "curl", "-fsSL", "https://nvidia.github.io/libnvidia-container/gpgkey",
-        "|", "sudo", "gpg", "--dearmor", "-o",
-        "/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg"
-    ], shell=True)
-    
-    run_command([
-        'curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | '
-        'sed \'s#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g\' | '
-        'sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list'
-    ], shell=True)
-    
-    run_command(["sudo", "apt-get", "update"])
-    run_command(["sudo", "apt-get", "install", "-y", "nvidia-container-toolkit"])
-    run_command(["sudo", "nvidia-ctk", "runtime", "configure", "--runtime=docker"])
-    run_command(["sudo", "systemctl", "restart", "docker"])
-
-
-def check_python_version() -> None:
-    """Check if Python version meets minimum requirements."""
-    current_version = sys.version_info[:2]
-    if current_version < MINIMUM_PYTHON_VERSION:
-        console.print(
-            f"[red]Error: Python {MINIMUM_PYTHON_VERSION[0]}.{MINIMUM_PYTHON_VERSION[1]} "
-            f"or higher is required. Current version: {current_version[0]}.{current_version[1]}[/red]"
-        )
+        console.print("[red]❌ Git is not installed[/red]")
         sys.exit(1)
 
-
-def install_egit() -> None:
-    """Install eGit package."""
-    console.print("🚀 Installing eGit...")
-    run_command([sys.executable, "-m", "pip", "install", "-e", "."])
-
-
-def setup_ollama() -> None:
-    """Set up Ollama container and download model."""
-    try:
-        from egit.docker import ensure_ollama_running
-        console.print("🤖 Setting up Ollama and downloading model...")
-        if not ensure_ollama_running():
-            console.print("[red]Failed to set up Ollama container[/red]")
-            sys.exit(1)
-    except Exception as e:
-        console.print(f"[red]Error setting up Ollama: {e}[/red]")
-        sys.exit(1)
-
-
-def main() -> None:
-    """Main installation function."""
-    console.print("[bold blue]eGit Installer[/bold blue]")
-    console.print("=" * 50)
+def get_install_dir() -> Path:
+    """Get installation directory based on platform"""
+    system = platform.system().lower()
     
-    # Check Python version
-    check_python_version()
-    
-    # Install system dependencies based on platform
-    system = platform.system()
-    if system == "Windows":
-        install_windows_dependencies()
-    elif system == "Darwin":
-        install_macos_dependencies()
-    elif system == "Linux":
-        install_linux_dependencies()
-        install_nvidia_toolkit()
+    if system == "windows":
+        base = os.environ.get("PROGRAMDATA", "C:\\ProgramData")
+        return Path(base) / "egit"
     else:
-        console.print(f"[red]Unsupported platform: {system}[/red]")
-        sys.exit(1)
-    
-    # Install eGit
-    install_egit()
-    
-    # Set up Ollama and download model
-    setup_ollama()
-    
-    console.print("\n[bold green]✨ Installation complete![/bold green]")
-    console.print(
-        "\n[yellow]Note: You may need to restart your terminal or log out "
-        "and back in for all changes to take effect.[/yellow]"
-    )
+        return Path.home() / ".egit"
 
+def setup_venv(install_dir: Path):
+    """Create and setup virtual environment"""
+    venv_dir = install_dir / ".venv"
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console
+    ) as progress:
+        # Create virtual environment
+        task = progress.add_task("Creating virtual environment...", total=None)
+        venv.create(venv_dir, with_pip=True)
+        progress.remove_task(task)
+        
+        # Get pip path
+        if platform.system().lower() == "windows":
+            pip_path = venv_dir / "Scripts" / "pip.exe"
+        else:
+            pip_path = venv_dir / "bin" / "pip"
+        
+        # Install requirements
+        task = progress.add_task("Installing dependencies...", total=None)
+        subprocess.run([str(pip_path), "install", "-r", "requirements.txt"], check=True)
+        progress.remove_task(task)
+
+def add_to_path(install_dir: Path):
+    """Add eGit to system PATH"""
+    system = platform.system().lower()
+    
+    if system == "windows":
+        if not is_admin():
+            console.print("[yellow]⚠️ Admin privileges required to modify PATH[/yellow]")
+            return
+        
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment", 0, winreg.KEY_ALL_ACCESS) as key:
+            current_path = winreg.QueryValueEx(key, "PATH")[0]
+            if str(install_dir) not in current_path:
+                new_path = f"{current_path};{install_dir}"
+                winreg.SetValueEx(key, "PATH", 0, winreg.REG_EXPAND_SZ, new_path)
+    else:
+        # Add to .bashrc or .zshrc
+        shell_rc = Path.home() / (".zshrc" if os.path.exists(Path.home() / ".zshrc") else ".bashrc")
+        with open(shell_rc, "a") as f:
+            f.write(f'\nexport PATH="$PATH:{install_dir}"\n')
+
+def main():
+    """Main installation function"""
+    console.print("[bold cyan]🚀 Installing eGit...[/bold cyan]")
+    
+    # Check requirements
+    check_python_version()
+    check_git_installation()
+    
+    # Get installation directory
+    install_dir = get_install_dir()
+    console.print(f"[cyan]📁 Installing to {install_dir}[/cyan]")
+    
+    # Create installation directory
+    install_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Setup virtual environment
+    setup_venv(install_dir)
+    
+    # Add to PATH
+    add_to_path(install_dir)
+    
+    console.print("[bold green]✨ eGit installation complete![/bold green]")
+    console.print("\nTo get started, try:")
+    console.print("  egit --help")
+    console.print("  egit config --help")
+    console.print("  egit summarize HEAD")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        console.print(f"[red]❌ Installation failed: {str(e)}[/red]")
+        sys.exit(1)

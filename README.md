@@ -1,138 +1,126 @@
-# eGit
+# eGit - Enhanced Git CLI with LLM Capabilities
 
-A powerful AI-enhanced Git CLI tool that helps you manage your Git workflow with the power of LLMs. eGit seamlessly integrates with your existing Git commands while providing additional AI-powered features for commit message analysis and code change summaries.
+eGit is a powerful CLI tool that enhances Git with LLM capabilities, making it easier to work with commit messages, generate release notes, and understand code changes.
 
 ## Features
 
-- 🤖 AI-powered Git operations using local or cloud LLM models
-- 📝 Automatic summarization of code changes
-- 🔄 Seamless integration with existing Git workflow
-- 🚀 Cross-platform support (Windows, macOS, Linux)
-- 🎮 GPU acceleration support (NVIDIA, AMD)
-- 🐳 Containerized LLM for easy deployment
+- 🤖 Summarize commit changes using AI
+- 📝 Generate comprehensive release notes
+- 🔄 Compare and analyze differences between commits
+- ⚙️ Flexible configuration for different LLM providers
+- 💾 Caching system for faster responses
+- 🔄 Git command passthrough for seamless integration
 
-## System Requirements
+## Requirements
 
-- **Operating System**: Windows, macOS, or Linux (Debian/Ubuntu)
-- **Memory**:
-  - 8GB+ RAM for local models
-  - 4GB+ RAM for cloud models
-- **Optional**:
-  - NVIDIA GPU for accelerated inference
-  - AMD GPU for accelerated inference
-- **Dependencies** (automatically installed):
-  - Python 3.10 or higher
-  - Git
-  - Docker
-  - WSL2 (Windows only)
+- Python 3.10 or higher
+- Git
+- One of the following LLM providers:
+  - Ollama (default)
+  - OpenAI
+  - Anthropic
+  - Google Vertex AI
+  - LM Studio (OpenAI API Compatible)
 
 ## Installation
 
-### Quick Installation
-
-#### Windows (PowerShell Administrator)
+### Windows
 ```powershell
-irm https://raw.githubusercontent.com/Sweet-Papa-Technologies/egit/main/install.ps1 | iex
-```
+# Install Python 3.10 if not installed
+choco install python310
 
-#### macOS/Linux
-```bash
-curl -fsSL https://raw.githubusercontent.com/Sweet-Papa-Technologies/egit/main/install.sh | bash
-```
+# Install Git if not installed
+choco install git
 
-The installer will:
-- Install Python 3.10 if not present
-- Install Git if not present
-- Clone the eGit repository
-- Run the Python installer which will set up all additional dependencies
-
-### Manual Installation
-
-1. Install Python 3.10 and Git for your platform
-2. Clone the repository:
-```bash
-git clone https://github.com/Sweet-Papa-Technologies/egit.git
-cd egit
-```
-
-3. Run the installer:
-```bash
-# Windows
+# Install eGit
 python install.py
-
-# macOS/Linux
-python3.10 install.py
 ```
 
-## Usage
-
-eGit works as a drop-in replacement for Git. All standard Git commands work exactly the same:
-
+### macOS
 ```bash
-# Standard Git commands work as normal
-egit status
-egit add .
-egit commit -m "feat: add new feature"
-egit push
+# Install Homebrew if not installed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Python 3.10 if not installed
+brew install python@3.10
+
+# Install Git if not installed
+brew install git
+
+# Install eGit
+python3 install.py
 ```
 
-### AI-Enhanced Commands
-
+### Linux (Debian/Ubuntu)
 ```bash
-# Summarize staged changes
-egit summarize
+# Install Git if not installed
+sudo apt-get install git
 
-# Summarize changes between commits
-egit summarize-diff HEAD~3 HEAD
+# Install Python 3.10 if not installed
+# Download from https://www.python.org/downloads/release/python-31013/
+
+# Install eGit
+python3 install.py
 ```
 
 ## Configuration
 
-eGit can be configured using environment variables or a config file located at `~/.egit/config.yaml`.
+eGit can be configured using environment variables or the config command:
 
-### Environment Variables
+```bash
+# Set LLM provider
+egit config llm_provider ollama
 
-- `EGIT_LLM_PROVIDER`: LLM provider (default: "ollama")
-- `EGIT_LLM_MODEL`: Model name (default: "llama3.2:3b")
-- `EGIT_LLM_API_KEY`: API key for cloud providers
-- `EGIT_LLM_API_BASE`: Custom API endpoint
-- `EGIT_DEBUG`: Enable debug mode (true/false)
+# Set model
+egit config llm_model openai/llama3.2:3b
 
-### Supported LLM Providers
+# Set API key (if needed)
+egit config llm_api_key your_api_key
 
-- Ollama (local)
-- OpenAI
-- Anthropic
-- Google Vertex AI
+# View current configuration
+egit config llm_provider
+```
 
-## Troubleshooting
+## Usage
 
-### Common Issues
+### Summarize Latest Commit
+```bash
+egit summarize
+```
 
-1. **Docker Issues**
-   - Ensure Docker is running: `docker ps`
-   - Restart Docker service if needed
-   - For Windows, ensure WSL2 is properly installed
+### Summarize Specific Commit
+```bash
+egit summarize <commit-hash>
+```
 
-2. **Model Issues**
-   - Check Ollama container logs: `docker logs egit-ollama`
-   - Ensure enough disk space for model download
-   - Verify network connection for model download
+### Compare Two Commits
+```bash
+egit summarize-diff <commit1> <commit2>
+```
 
-3. **Permission Issues**
-   - Ensure user is in docker group
-   - Run with elevated privileges if needed
+### Generate Release Notes
+```bash
+egit release-notes [branch-name]
+```
 
-### Getting Help
+### Regular Git Commands
+eGit passes through any unrecognized commands to Git, so you can use it as a drop-in replacement:
+```bash
+egit status
+egit add .
+egit commit -m "feat: add new feature"
+```
 
-- Check the logs in `~/.egit/logs`
-- Enable debug mode: `export EGIT_DEBUG=true`
-- Open an issue on GitHub
+## Environment Variables
+
+- `GIT_EXECUTABLE`: Path to Git executable (default: system git)
+- `LLM_PROVIDER`: LLM provider to use (default: ollama)
+- `LLM_MODEL`: Model name (default: openai/llama3.2:3b)
+- `LLM_API_KEY`: API key for the LLM service
+- `LLM_API_BASE`: Base URL for the LLM API (default: http://localhost:11434)
+- `LLM_MAX_TOKENS`: Maximum tokens for LLM response (default: 4096)
+- `LLM_TEMPERATURE`: Temperature for LLM sampling (default: 0.7)
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

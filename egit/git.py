@@ -1,52 +1,59 @@
-"""Git operations for eGit."""
-
-import subprocess
-from pathlib import Path
+"""
+Git integration for eGit using GitPython
+"""
 from typing import List, Optional, Tuple
-
-import git
-from git import Repo
+from git import Repo, Git
 from git.exc import GitCommandError
+from pathlib import Path
+from .config import load_config
 
-from egit.config import settings
-
+def get_git_executable() -> str:
+    """Get Git executable path from config"""
+    config = load_config()
+    return config.git_executable
 
 def get_repo(path: Optional[Path] = None) -> Repo:
-    """Get Git repository at the specified path or current directory."""
+    """Get Git repository object"""
     try:
         return Repo(path or Path.cwd(), search_parent_directories=True)
-    except git.exc.InvalidGitRepositoryError:
-        raise ValueError("Not a Git repository")
+    except Exception as e:
+        raise Exception(f"Error accessing Git repository: {str(e)}")
 
-
-def get_diff(repo: Repo, commit_range: Optional[str] = None) -> str:
-    """Get Git diff for the specified commit range."""
+def get_commit_messages(commit: str = "HEAD") -> str:
+    """Get commit messages for a specific commit"""
     try:
-        if commit_range:
-            return repo.git.diff(commit_range)
-        else:
-            return repo.git.diff("HEAD")
+        repo = get_repo()
+        commit_obj = repo.commit(commit)
+        return commit_obj.message
+    except Exception as e:
+        raise Exception(f"Error getting commit messages: {str(e)}")
+
+def get_commit_diff(commit1: str, commit2: str) -> str:
+    """Get diff between two commits"""
+    try:
+        repo = get_repo()
+        diff = repo.git.diff(commit1, commit2)
+        return diff
+    except Exception as e:
+        raise Exception(f"Error getting commit diff: {str(e)}")
+
+def get_branch_commits(branch: Optional[str] = None) -> List[Tuple[str, str]]:
+    """Get all commits on a branch"""
+    try:
+        repo = get_repo()
+        if not branch:
+            branch = repo.active_branch.name
+        commits = list(repo.iter_commits(branch))
+        return [(commit.hexsha, commit.message) for commit in commits]
+    except Exception as e:
+        raise Exception(f"Error getting branch commits: {str(e)}")
+
+def execute_git_command(command: List[str]) -> str:
+    """Execute a Git command"""
+    try:
+        git = Git(get_git_executable())
+        return git.execute(command)
     except GitCommandError as e:
-        raise ValueError(f"Failed to get diff: {e}")
-
-
-def get_staged_changes(repo: Repo) -> str:
-    """Get staged changes in the repository."""
-    try:
-        return repo.git.diff("--cached")
-    except GitCommandError as e:
-        raise ValueError(f"Failed to get staged changes: {e}")
-
-
-def pass_through(args: List[str]) -> Tuple[int, str, str]:
-    """Pass through Git command to system Git."""
-    try:
-        result = subprocess.run(
-            [settings.git_executable, *args],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.returncode, result.stdout, result.stderr
-    except subprocess.CalledProcessError as e:
-        return e.returncode, e.stdout, e.stderr
+        raise Exception(f"Git command error: {str(e)}")
+    except Exception as e:
+        raise Exception(f"Error executing Git command: {str(e)}")

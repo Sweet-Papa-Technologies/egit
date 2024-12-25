@@ -1,64 +1,82 @@
-"""Configuration management for eGit."""
-
-import os
+"""
+Configuration management for eGit
+"""
 from pathlib import Path
-from typing import Optional
-
+from typing import Optional, Dict, Any
+import json
+import os
+from platformdirs import PlatformDirs
 from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
 
+# Initialize platform-specific directories
+dirs = PlatformDirs("egit", "egit")
 
-class LLMConfig(BaseModel):
-    """LLM configuration settings."""
-    provider: str = Field(default="ollama", description="LLM provider (ollama, openai, anthropic, vertex)")
-    model: str = Field(default="llama3.2:3b", description="Model name to use")
-    api_key: Optional[str] = Field(default=None, description="API key for the LLM service")
-    api_base: Optional[str] = Field(default=None, description="Base URL for the LLM API")
-    max_tokens: int = Field(default=4096, description="Maximum tokens for LLM response")
-    temperature: float = Field(default=0.7, description="Temperature for LLM sampling")
+# Define paths
+CONFIG_DIR = Path(dirs.user_config_dir)
+DATA_DIR = Path(dirs.user_data_dir)
+CACHE_DIR = Path(dirs.user_cache_dir)
+LOG_DIR = Path(dirs.user_log_dir)
+ENV_FILE = CONFIG_DIR / ".env"
+CONFIG_FILE = CONFIG_DIR / "egit.json"
+DB_FILE = DATA_DIR / "egit.db"
+LOG_FILE = LOG_DIR / "egit.log"
 
+# Create necessary directories
+for directory in [CONFIG_DIR, DATA_DIR, CACHE_DIR, LOG_DIR]:
+    directory.mkdir(parents=True, exist_ok=True)
 
-class Settings(BaseSettings):
-    """Global settings for eGit."""
-    model_config = SettingsConfigDict(
-        env_prefix="EGIT_",
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+class EGitConfig(BaseModel):
+    """eGit configuration model"""
+    git_executable: str = Field(default="git")
+    llm_provider: str = Field(default="ollama")
+    llm_model: str = Field(default="openai/llama3.2:3b")
+    llm_api_key: Optional[str] = Field(default=None)
+    llm_api_base: str = Field(default="http://localhost:11434")
+    llm_max_tokens: int = Field(default=4096)
+    llm_temperature: float = Field(default=0.7)
 
-    # LLM Settings
-    llm: LLMConfig = Field(default_factory=LLMConfig)
+def load_config() -> EGitConfig:
+    """Load configuration from environment and config file"""
+    # Load environment variables
+    if ENV_FILE.exists():
+        load_dotenv(ENV_FILE)
     
-    # Docker Settings
-    docker_image: str = Field(default="ollama/ollama", description="Docker image for Ollama")
-    docker_container_name: str = Field(default="egit-ollama", description="Name for the Ollama container")
+    # Load config file
+    config_data: Dict[str, Any] = {}
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, 'r') as f:
+            config_data = json.load(f)
     
-    # Git Settings
-    git_executable: str = Field(default="git", description="Path to Git executable")
+    # Environment variables take precedence over config file
+    env_config = {
+        "git_executable": os.getenv("GIT_EXECUTABLE", config_data.get("git_executable", "git")),
+        "llm_provider": os.getenv("LLM_PROVIDER", config_data.get("llm_provider", "ollama")),
+        "llm_model": os.getenv("LLM_MODEL", config_data.get("llm_model", "openai/llama3.2:3b")),
+        "llm_api_key": os.getenv("LLM_API_KEY", config_data.get("llm_api_key")),
+        "llm_api_base": os.getenv("LLM_API_BASE", config_data.get("llm_api_base", "http://localhost:11434")),
+        "llm_max_tokens": int(os.getenv("LLM_MAX_TOKENS", config_data.get("llm_max_tokens", 4096))),
+        "llm_temperature": float(os.getenv("LLM_TEMPERATURE", config_data.get("llm_temperature", 0.7))),
+    }
     
-    # App Settings
-    config_dir: Path = Field(
-        default=Path.home() / ".egit",
-        description="Directory for eGit configuration"
-    )
-    cache_dir: Path = Field(
-        default=Path.home() / ".egit" / "cache",
-        description="Directory for eGit cache"
-    )
-    debug: bool = Field(default=False, description="Enable debug mode")
+    return EGitConfig(**env_config)
 
+def save_config(config: Dict[str, Any]) -> None:
+    """Save configuration to config file"""
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f, indent=4)
 
-def load_settings() -> Settings:
-    """Load settings from environment variables and config file."""
-    settings = Settings()
+def update_config(key: str, value: str) -> None:
+    """Update a specific configuration value"""
+    config_data = {}
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, 'r') as f:
+            config_data = json.load(f)
     
-    # Ensure config directories exist
-    settings.config_dir.mkdir(parents=True, exist_ok=True)
-    settings.cache_dir.mkdir(parents=True, exist_ok=True)
-    
-    return settings
+    config_data[key] = value
+    save_config(config_data)
 
-
-# Global settings instance
-settings = load_settings()
+def get_config_value(key: str) -> Optional[str]:
+    """Get a specific configuration value"""
+    config = load_config()
+    return getattr(config, key, None)

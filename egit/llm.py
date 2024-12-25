@@ -1,56 +1,43 @@
-"""LLM integration for eGit."""
-
+"""
+LLM integration for eGit using LiteLLM
+"""
 from typing import Optional
-
 from litellm import completion
-from pydantic import BaseModel
+from .config import load_config
 
-from egit.config import settings
+SUMMARY_PROMPT = """
+You are a helpful assistant that summarizes GitLab commit messages. Please summarize all of the changes this person has made to their code based off the commit messages.
+{context}
+"""
 
+RELEASE_NOTES_PROMPT = """
+You are a helpful assistant that generates release notes from Git commit messages. Please generate clear and organized release notes in markdown format based on the following commit messages:
+{context}
+"""
 
-class LLMResponse(BaseModel):
-    """Response from LLM."""
-    text: str
-    tokens_used: int
+async def get_llm_response(prompt: str, max_tokens: Optional[int] = None) -> str:
+    """Get response from LLM"""
+    config = load_config()
+    
+    try:
+        response = await completion(
+            model=config.llm_model,
+            messages=[{"role": "user", "content": prompt}],
+            api_base=config.llm_api_base,
+            api_key=config.llm_api_key,
+            max_tokens=max_tokens or config.llm_max_tokens,
+            temperature=config.llm_temperature
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        raise Exception(f"Error getting LLM response: {str(e)}")
 
+async def summarize_commits(commit_messages: str) -> str:
+    """Summarize commit messages using LLM"""
+    prompt = SUMMARY_PROMPT.format(context=commit_messages)
+    return await get_llm_response(prompt)
 
-async def get_completion(
-    prompt: str,
-    system_prompt: Optional[str] = None,
-    max_tokens: Optional[int] = None,
-) -> LLMResponse:
-    """Get completion from LLM."""
-    messages = []
-    if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
-    messages.append({"role": "user", "content": prompt})
-
-    response = await completion(
-        model=settings.llm.model,
-        messages=messages,
-        api_base=settings.llm.api_base,
-        max_tokens=max_tokens or settings.llm.max_tokens,
-        temperature=settings.llm.temperature,
-    )
-
-    return LLMResponse(
-        text=response.choices[0].message.content,
-        tokens_used=response.usage.total_tokens,
-    )
-
-
-async def summarize_changes(diff_text: str) -> str:
-    """Summarize Git changes using LLM."""
-    system_prompt = """You are a helpful AI assistant that summarizes Git changes.
-    Your summaries should be concise, clear, and focus on the important changes.
-    Use bullet points for multiple changes."""
-
-    prompt = f"""Please summarize the following Git changes:
-
-{diff_text}
-
-Focus on what was changed and why it might have been changed.
-Keep the summary concise but informative."""
-
-    response = await get_completion(prompt, system_prompt)
-    return response.text
+async def generate_release_notes(commit_messages: str) -> str:
+    """Generate release notes from commit messages using LLM"""
+    prompt = RELEASE_NOTES_PROMPT.format(context=commit_messages)
+    return await get_llm_response(prompt)
