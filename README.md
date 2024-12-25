@@ -60,6 +60,8 @@ If you don't have admin privileges on Windows, you can manually add eGit to your
 
 ## Usage
 
+NOTE: API KEY value must be set, otherwise LLM calls will fail. If your endpoint does not take an API key, please set a fake value such as `sk-123`. The value will be ignored if your endpoint does not need it.
+
 ### Summarize and Commit Changes
 ```bash
 # View summary of staged changes
