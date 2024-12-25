@@ -76,7 +76,7 @@ def get_config_value(key: str) -> Optional[Any]:
 DEFAULT_CONFIG = {
     "llm_provider": "ollama",
     "llm_model": "ollama/llama3.2:3b",
-    "llm_api_key": "",
+    "llm_api_key": "sk-123",
     "llm_api_base": "http://localhost:11434",
     "llm_max_tokens": 4096,
     "llm_temperature": 0.7,

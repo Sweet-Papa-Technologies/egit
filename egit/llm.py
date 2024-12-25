@@ -59,18 +59,23 @@ async def summarize_commits(commit_messages: str) -> str:
     prompt = SUMMARY_PROMPT.format(context=commit_messages)
     return await get_llm_response(prompt)
 
-async def generate_release_notes(commit_messages: str) -> str:
-    """Generate release notes from commit messages using LLM"""
-    prompt = RELEASE_NOTES_PROMPT.format(context=commit_messages)
-    return await get_llm_response(prompt)
+# async def generate_release_notes(commit_messages: str) -> str:
+#     """Generate release notes from commit messages using LLM"""
+#     prompt = RELEASE_NOTES_PROMPT.format(context=commit_messages)
+#     return await get_llm_response(prompt)
 
 def get_llm_config() -> Dict[str, Any]:
     """Get LLM configuration"""
     config = get_config()
+    setup_llm_env()
+    model = config.get("llm_model", "ollama/llama3.2:3b")
+    if config.get("llm_provider") == "ollama":
+        # Strip 'openai/' prefix for Ollama models
+        model = model.replace("openai/", "ollama/")
     return {
-        "model": config.get("llm_model", "gpt-3.5-turbo"),
-        "api_base": config.get("llm_api_base"),
-        "api_key": config.get("llm_api_key"),
+        "model": model,
+        "api_base": config.get("llm_api_base", "http://localhost:11434"),
+        "api_key": config.get("llm_api_key", "sk-123"),
         "max_tokens": int(config.get("llm_max_tokens", "500")),
         "temperature": float(config.get("llm_temperature", "0.7")),
     }
@@ -103,6 +108,8 @@ Focus on:
 Keep the summary brief but informative.
 ENSURE the summary is a single paragraph, on a single line.
 Make the summary suitable for a commit message.
+
+ONLY respond with the summary, nothing else.
 """
 
     # Get response from LLM
@@ -158,6 +165,8 @@ Generate release notes that:
 4. Include relevant technical details
 5. Follow a consistent format
 6. Are written in markdown
+
+ONLY respond with the release notes, nothing else. DO NOT include Placeholders.
 """
 
     # Call the LLM
