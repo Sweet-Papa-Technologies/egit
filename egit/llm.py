@@ -152,28 +152,38 @@ def generate_release_notes(commits: List[Dict[str, Any]], version: str) -> str:
         commit_list.append(commit_text)
     
     # Create the prompt
-    prompt = f"""As a technical writer, generate comprehensive release notes for version {version}.
-Analyze these commits and create well-organized, user-friendly release notes.
+    prompt = f"""Generate concise release notes for version {version} that will be used as a git tag message.
 
 Commits:
 {chr(10).join(commit_list)}
 
-Generate release notes that:
-1. Start with a brief version overview
-2. Group changes by type (Features, Bug Fixes, Documentation, etc.)
-3. Are clear and user-focused
-4. Include relevant technical details
-5. Follow a consistent format
-6. Are written in a format compatible with git's tag message command
+Requirements:
+1. Start with a brief one-line version summary
+2. Group changes under these categories (only include if there are relevant changes):
+   - Features:
+   - Bug Fixes:
+   - Other Changes:
+3. Keep each bullet point short and clear
+4. Use simple text formatting (avoid markdown)
+5. Keep the total length under 500 characters
+6. Use this format:
+   Version {version}
+   <one-line summary>
+   
+   Features:
+   * <feature 1>
+   * <feature 2>
+   
+   Bug Fixes:
+   * <fix 1>
 
-ONLY respond with the release notes, nothing else. DO NOT include Placeholders.
-"""
+ONLY respond with the release notes, nothing else. Keep it concise."""
 
     # Call the LLM
     response = completion(
         messages=[{
             "role": "system",
-            "content": "You are an expert at writing clear, organized release notes that highlight important changes."
+            "content": "You are an expert at writing clear, concise release notes suitable for git tag messages."
         }, {
             "role": "user",
             "content": prompt
