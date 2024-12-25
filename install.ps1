@@ -43,25 +43,21 @@ function Install-Chocolatey {
 function Install-Dependencies {
     Install-Chocolatey
 
+    Write-Host "Installing Python 3.10..." -ForegroundColor Yellow
+    choco install python310 -y
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    
+    # Upgrade pip
+    Write-Host "Upgrading pip..." -ForegroundColor Yellow
+    python -m pip install --upgrade pip
 
-        Write-Host "Installing Python 3.10..." -ForegroundColor Yellow
-        choco install python310 -y
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-        
-        # Upgrade pip
-        Write-Host "Upgrading pip..." -ForegroundColor Yellow
-        python -m pip install --upgrade pip
- 
+    Write-Host "Installing Git..." -ForegroundColor Yellow
+    choco install git -y
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
 
-        Write-Host "Installing Git..." -ForegroundColor Yellow
-        choco install git -y
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-
-
-        Write-Host "Installing Docker..." -ForegroundColor Yellow
-        choco install docker -y
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-  
+    Write-Host "Installing Docker..." -ForegroundColor Yellow
+    choco install docker -y
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
 }
 
 function Start-DockerService {
@@ -173,7 +169,11 @@ function Install-eGit {
             Write-Host "Running eGit installer..." -ForegroundColor Yellow
             Push-Location $installDir
 
-            # Run Python directly and capture full output
+            # Set environment variables for Python process
+            $env:DOCKER_HOST = "npipe:////./pipe/docker_engine"
+            $env:PATH = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+
+            # Run Python directly with environment variables
             $pythonProcess = Start-Process -FilePath "python" -ArgumentList "install.py" -NoNewWindow -Wait -PassThru
             if ($pythonProcess.ExitCode -ne 0) {
                 throw "Python installer failed with exit code $($pythonProcess.ExitCode)"
