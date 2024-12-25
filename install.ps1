@@ -62,7 +62,7 @@ function Install-Dependencies {
 
 function Install-PythonPackages {
     Write-Host "Installing required Python packages..." -ForegroundColor Yellow
-    python -m pip install rich typer docker pydantic litellm gitpython python-dotenv
+    python -m pip install rich typer docker pydantic pydantic-settings litellm gitpython python-dotenv
 }
 
 function Update-Repository {

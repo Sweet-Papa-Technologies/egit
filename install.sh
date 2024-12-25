@@ -87,7 +87,7 @@ install_linux_deps() {
 # Install Python packages
 install_python_packages() {
     echo -e "\033[33mInstalling required Python packages...\033[0m"
-    python3.10 -m pip install rich typer docker pydantic litellm gitpython python-dotenv
+    python3.10 -m pip install rich typer docker pydantic pydantic-settings litellm gitpython python-dotenv
 }
 
 # Update repository
