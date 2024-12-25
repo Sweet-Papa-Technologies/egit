@@ -27,6 +27,9 @@
 
 ### Response Quality
 
-[] UNTESTED - `egit summarize --staged`
-[] UNTESTED - `egit summarize --branch`
-[] UNTESTED - `egit summarize --commit`
+- Ollama API
+- LM Studio API
+- OpenAI API
+- Anthropic API
+- Gemini API
+- Vertex AI API
