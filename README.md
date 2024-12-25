@@ -15,11 +15,11 @@ eGit is a powerful CLI tool that enhances Git with LLM capabilities, making it e
 - Python 3.10 or higher
 - Git
 - One of the following LLM providers:
-  - Ollama (default)
+  - LM Studio (default)
+  - Ollama 
   - OpenAI
   - Anthropic
   - Google Vertex AI
-  - LM Studio (OpenAI API Compatible)
 
 ## Installation
 
@@ -59,7 +59,6 @@ If you don't have admin privileges on Windows, you can manually add eGit to your
 2. Add the installation directory to your PATH environment variable
 
 ## Usage
-
 NOTE: API KEY value must be set, otherwise LLM calls will fail. If your endpoint does not take an API key, please set a fake value such as `sk-123`. The value will be ignored if your endpoint does not need it.
 
 ### Summarize and Commit Changes
@@ -72,6 +71,13 @@ egit summarize --branch
 
 # Generate summary and automatically commit staged changes
 egit summarize --commit
+```
+
+#### How this would typically be used:
+```bash
+git add .
+egit summarize --commit
+git push
 ```
 
 ### Generate Release Notes and Tags
@@ -130,6 +136,14 @@ egit config --set llm_provider lmstudio
 egit config --set llm_model lm_studio/hermes-3-llama-3.1-8b
 egit config --set llm_api_key sk-123
 egit config --set llm_api_base --value http://localhost:1221/v1
+```
+
+### Google Vertex AI
+```bash
+egit config --set llm_provider vertex
+egit config --set llm_model projects/1234567890/locations/us-central1/models/1234567890
+egit config --set llm_api_key sk-123
+egit config --set llm_api_base --value http://localhost:1234/v1
 ```
 ## Contributing
 
