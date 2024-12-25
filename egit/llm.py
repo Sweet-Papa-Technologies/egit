@@ -88,29 +88,38 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     setup_llm_env()
     
     # Prepare the prompt with both file changes and diffs
-    changes_text = "\n".join(changes)
-    diff_text = "\n".join(diffs)
+    changes_text = "\n".join(f"  {change}" for change in changes)
+    diff_text = "\n".join(f"  {diff}" for diff in diffs)
     
-    prompt = f"""Please summarize these Git changes in a clear, concise way:
+    # Create a more specific system prompt
+    system_prompt = """You are a Git commit message generator that creates clear, concise, and informative summaries of code changes.
+Your summaries should:
+- Start with a verb in the present tense (e.g., "Add", "Fix", "Update", "Refactor")
+- Be no more than 72 characters for the first line
+- Focus on the "what" and "why" of the changes
+- Group related changes together
+- Mention specific components or areas that were modified
+- Include any breaking changes or important notes
 
-File Changes:
+DO NOT:
+- Simply list the files that changed
+- Include generic phrases like "various changes" or "multiple updates"
+- Write multiple paragraphs or use line breaks
+- Include the word "summary" or phrases like "this commit"
+"""
+
+    # Create a more structured user prompt
+    prompt = f"""Here are the Git changes to summarize:
+
+Changed Files:
 {changes_text}
 
 Detailed Changes:
 {diff_text}
 
-Focus on:
-1. The main types of changes (added, modified, deleted files)
-2. Key components or areas that were changed
-3. Specific code changes and their purpose
-4. Any patterns in the changes
-
-Keep the summary brief but informative.
-ENSURE the summary is a single paragraph, on a single line.
-Make the summary suitable for a commit message.
-
-ONLY respond with the summary, nothing else.
-"""
+Generate a clear and concise Git commit message that describes these changes.
+Focus on what was changed and why, not just which files were modified.
+The message should be suitable for a Git commit and follow conventional commit message guidelines."""
 
     # Get response from LLM
     try:
@@ -121,20 +130,26 @@ ONLY respond with the summary, nothing else.
             
         response = completion(
             model=model,
-            messages=[{
-                "role": "system",
-                "content": "You are a helpful assistant that summarizes Git changes in a clear, concise way. Focus on the specific code changes and their purpose."
-            }, {
-                "role": "user",
-                "content": prompt
-            }],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ],
             temperature=float(config.get("llm_temperature", 0.7)),
-            max_tokens=int(config.get("llm_max_tokens", 4096)),
+            max_tokens=int(config.get("llm_max_tokens", 32000)),  # Use larger context window
             api_key=config.get("llm_api_key", "sk-123"),
             api_base=config.get("llm_api_base", "http://localhost:11434")
         )
         
-        return response.choices[0].message.content.strip()
+        # Clean up the response
+        summary = response.choices[0].message.content.strip()
+        
+        # Ensure it's not too long and doesn't contain newlines
+        if "\n" in summary:
+            summary = summary.split("\n")[0]
+        if len(summary) > 72:
+            summary = summary[:69] + "..."
+            
+        return summary
     except Exception as e:
         return f"Error generating summary: {str(e)}"
 
