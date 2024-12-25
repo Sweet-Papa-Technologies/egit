@@ -64,27 +64,34 @@ async def generate_release_notes(commit_messages: str) -> str:
     prompt = RELEASE_NOTES_PROMPT.format(context=commit_messages)
     return await get_llm_response(prompt)
 
-def summarize_changes(changes: List[str]) -> str:
+def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     """Generate a natural language summary of the changes"""
     config = get_config()
     
     # Setup environment variables
     setup_llm_env()
     
-    # Prepare the prompt
+    # Prepare the prompt with both file changes and diffs
     changes_text = "\n".join(changes)
+    diff_text = "\n".join(diffs)
+    
     prompt = f"""Please summarize these Git changes in a clear, concise way:
 
+File Changes:
 {changes_text}
+
+Detailed Changes:
+{diff_text}
 
 Focus on:
 1. The main types of changes (added, modified, deleted files)
 2. Key components or areas that were changed
-3. Any patterns in the changes
+3. Specific code changes and their purpose
+4. Any patterns in the changes
 
 Keep the summary brief but informative.
-
 ENSURE the summary is a single paragraph, on a single line.
+Make the summary suitable for a commit message.
 """
 
     # Get response from LLM
@@ -98,7 +105,7 @@ ENSURE the summary is a single paragraph, on a single line.
             model=model,
             messages=[{
                 "role": "system",
-                "content": "You are a helpful assistant that summarizes Git changes in a clear, concise way."
+                "content": "You are a helpful assistant that summarizes Git changes in a clear, concise way. Focus on the specific code changes and their purpose."
             }, {
                 "role": "user",
                 "content": prompt

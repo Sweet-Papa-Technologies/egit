@@ -1,18 +1,21 @@
 """
 Command-line interface for eGit
 """
+import sys
 import typer
 from rich.console import Console
 from rich import print as rprint
-from typing import Optional
+from typing import Optional, List
+import subprocess
 
 from . import __version__
 from . import git
-from . import config as config_module  # Import as config_module to avoid name conflict
+from . import config as config_module
 
 app = typer.Typer(
     help="eGit - Enhanced Git CLI with LLM capabilities",
-    no_args_is_help=True  # Show help message when no arguments are provided
+    no_args_is_help=False,  # Don't show help for unhandled commands
+    add_completion=False,  # Don't add completion to avoid conflicts with git
 )
 console = Console()
 
@@ -22,8 +25,20 @@ def version_callback(value: bool):
         rprint(f"[green]eGit version: {__version__}[/green]")
         raise typer.Exit()
 
-@app.callback()
+def pass_to_git(args: List[str]) -> None:
+    """Pass command to git"""
+    try:
+        # Get git executable from config
+        git_exe = config_module.get_config().get("git_executable", "git")
+        # Run git command with all arguments
+        result = subprocess.run([git_exe] + args, check=True)
+        raise typer.Exit(result.returncode)
+    except subprocess.CalledProcessError as e:
+        raise typer.Exit(e.returncode)
+
+@app.callback(invoke_without_command=True)
 def common(
+    ctx: typer.Context,
     version: Optional[bool] = typer.Option(
         None,
         "--version",
@@ -38,7 +53,15 @@ def common(
 
     Run 'egit --help' for usage information.
     """
-    pass
+    # If no command is provided or command is not in our app, pass through to git
+    if ctx.invoked_subcommand is None:
+        if len(sys.argv) > 1:
+            # Skip the first argument (egit) and pass the rest to git
+            pass_to_git(sys.argv[1:])
+        else:
+            # Show help if no arguments provided
+            console.print(ctx.get_help())
+            raise typer.Exit()
 
 @app.command()
 def summarize(
@@ -57,6 +80,12 @@ def summarize(
         "--branch",
         "-b",
         help="Show only current branch changes"
+    ),
+    auto_commit: bool = typer.Option(
+        False,
+        "--commit",
+        "-c",
+        help="Automatically commit changes with the generated summary"
     )
 ):
     """
@@ -67,39 +96,57 @@ def summarize(
             # Summarize specific commit
             message = git.get_commit_message(commit)
             changes = git.get_commit_changes(commit)
+            diffs = git.get_commit_diff(commit)
             
             console.print(f"[bold]Commit:[/bold] {commit}")
             console.print(f"[bold]Message:[/bold] {message}")
+            console.print("\n[bold]Changes:[/bold]")
+            for change in changes:
+                console.print(f"  {change}")
         else:
             changes = []
+            diffs = []
+            staged_changes = None
+            
             # Get staged changes if requested or if no specific option is chosen
             if staged or (not staged and not branch):
                 staged_changes = git.get_staged_changes()
+                staged_diffs = git.get_staged_diff()
                 if staged_changes:
                     console.print("\n[bold cyan]Staged Changes:[/bold cyan]")
                     for change in staged_changes:
                         console.print(f"  {change}")
                     changes.extend(staged_changes)
+                    diffs.extend(staged_diffs)
                 else:
                     console.print("[yellow]No staged changes found[/yellow]")
 
             # Get current branch changes if requested or if no specific option is chosen
             if branch or (not staged and not branch):
                 branch_changes = git.get_branch_changes()
+                branch_diffs = git.get_branch_diff()
                 if branch_changes:
                     console.print("\n[bold green]Current Branch Changes:[/bold green]")
                     for change in branch_changes:
                         console.print(f"  {change}")
                     changes.extend(branch_changes)
+                    diffs.extend(branch_diffs)
                 else:
                     console.print("[yellow]No changes in current branch[/yellow]")
 
         if changes:
             # Generate and display summary
             from . import llm
-            summary = llm.summarize_changes(changes)
+            summary = llm.summarize_changes(changes, diffs)
             console.print("\n[bold]Summary:[/bold]")
             console.print(summary)
+            
+            # Auto-commit if requested and there are staged changes
+            if auto_commit and staged_changes:
+                git.commit(summary)
+                console.print("\n[green]Changes committed successfully![/green]")
+            elif auto_commit:
+                console.print("\n[yellow]No staged changes to commit[/yellow]")
             
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
@@ -148,5 +195,17 @@ def config(
         console.print(f"[red]Error:[/red] {str(e)}")
         raise typer.Exit(1)
 
+def main():
+    """Main entry point for the CLI"""
+    try:
+        app()
+    except Exception as e:
+        # If command not found in our app, pass it to git
+        if "No such command" in str(e):
+            # Skip the first argument (egit) and pass the rest to git
+            pass_to_git(sys.argv[1:])
+        else:
+            raise
+
 if __name__ == "__main__":
-    app()
+    main()

@@ -36,9 +36,19 @@ def get_commit_changes(commit: str) -> List[str]:
     output = run_git_command(["show", "--name-status", "--format=", commit])
     return [line.strip() for line in output.splitlines() if line.strip()]
 
+def get_commit_diff(commit: str) -> List[str]:
+    """Get the full diff for a commit"""
+    output = run_git_command(["show", "--patch", "--format=", commit])
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
 def get_staged_changes() -> List[str]:
     """Get list of staged changes"""
     output = run_git_command(["diff", "--cached", "--name-status"])
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
+def get_staged_diff() -> List[str]:
+    """Get full diff of staged changes"""
+    output = run_git_command(["diff", "--cached", "--patch"])
     return [line.strip() for line in output.splitlines() if line.strip()]
 
 def get_branch_changes() -> List[str]:
@@ -58,6 +68,23 @@ def get_branch_changes() -> List[str]:
     
     return [line.strip() for line in output.splitlines() if line.strip()]
 
+def get_branch_diff() -> List[str]:
+    """Get full diff of changes in current branch"""
+    try:
+        # First try to compare with main
+        base_branch = "main"
+        output = run_git_command(["diff", "--patch", f"{base_branch}...HEAD"])
+    except Exception:
+        try:
+            # If main doesn't exist, try master
+            base_branch = "master"
+            output = run_git_command(["diff", "--patch", f"{base_branch}...HEAD"])
+        except Exception:
+            # If neither exists, show all changes in the current branch
+            output = run_git_command(["diff", "--patch", "HEAD"])
+    
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
 def get_current_branch() -> str:
     """Get the name of the current branch"""
     return run_git_command(["rev-parse", "--abbrev-ref", "HEAD"])
@@ -66,3 +93,7 @@ def get_repo_root() -> Path:
     """Get the root directory of the git repository"""
     output = run_git_command(["rev-parse", "--show-toplevel"])
     return Path(output)
+
+def commit(message: str) -> None:
+    """Create a new commit with the given message"""
+    run_git_command(["commit", "-m", message])
