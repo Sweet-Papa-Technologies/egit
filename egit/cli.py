@@ -118,8 +118,17 @@ def release_notes(
         # Create tag if requested
         if create_tag and not draft:
             try:
+                # Check for staged changes first
                 git.create_tag(version, notes)
                 console.print(f"\n[green]Created tag {version} with release notes![/green]")
+                
+                # Push the tag
+                try:
+                    git.push_tag(version)
+                    console.print(f"[green]Successfully pushed tag {version} to remote![/green]")
+                except Exception as e:
+                    console.print(f"[yellow]Warning: Tag created but failed to push to remote: {str(e)}[/yellow]")
+                    
             except Exception as e:
                 console.print(f"[red]Error creating tag:[/red] {str(e)}")
                 raise typer.Exit(1)
