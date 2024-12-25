@@ -135,8 +135,7 @@ ONLY RETURN THE COMMIT MESSAGE
         response = completion(
             model=model,
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": system_prompt + "\n" + prompt}
             ],
             temperature=float(config.get("llm_temperature", 0.7)),
             max_tokens=int(config.get("llm_max_tokens", 32000)),  # Use larger context window
