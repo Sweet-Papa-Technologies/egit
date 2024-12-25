@@ -58,6 +58,65 @@ function Install-Dependencies {
         choco install git -y
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
     }
+
+    if (-not (Test-Command "docker")) {
+        Write-Host "Installing Docker..." -ForegroundColor Yellow
+        choco install docker -y
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    }
+}
+
+function Start-DockerService {
+    Write-Host "Ensuring Docker service is running..." -ForegroundColor Yellow
+    
+    # Check if Docker service exists
+    $dockerService = Get-Service -Name "docker" -ErrorAction SilentlyContinue
+    
+    if ($null -eq $dockerService) {
+        throw "Docker service not found. Please ensure Docker is installed correctly."
+    }
+    
+    # Start Docker service if it's not running
+    if ($dockerService.Status -ne "Running") {
+        Start-Service -Name "docker"
+        $retries = 30
+        $dockerRunning = $false
+        
+        Write-Host "Starting Docker service..." -ForegroundColor Yellow
+        while ($retries -gt 0 -and -not $dockerRunning) {
+            $dockerService.Refresh()
+            if ($dockerService.Status -eq "Running") {
+                $dockerRunning = $true
+                break
+            }
+            Start-Sleep -Seconds 2
+            $retries--
+            Write-Host "Waiting for Docker service to start... ($retries attempts remaining)" -ForegroundColor Yellow
+        }
+        
+        if (-not $dockerRunning) {
+            throw "Docker service failed to start in time"
+        }
+    }
+    
+    # Additional wait for Docker to be fully responsive
+    Write-Host "Waiting for Docker to be responsive..." -ForegroundColor Yellow
+    $retries = 15
+    while ($retries -gt 0) {
+        try {
+            $null = docker info
+            Write-Host "Docker is ready!" -ForegroundColor Green
+            return
+        }
+        catch {
+            Start-Sleep -Seconds 2
+            $retries--
+            if ($retries -gt 0) {
+                Write-Host "Waiting for Docker to be responsive... ($retries attempts remaining)" -ForegroundColor Yellow
+            }
+        }
+    }
+    throw "Docker is not responding. Please try starting Docker manually."
 }
 
 function Install-PythonPackages {
@@ -143,6 +202,7 @@ function Install-eGit {
 
 try {
     Install-Dependencies
+    Start-DockerService
     Install-eGit
     Write-Host "`nInstallation complete!" -ForegroundColor Green
     Write-Host "You may need to restart your terminal for changes to take effect." -ForegroundColor Yellow
