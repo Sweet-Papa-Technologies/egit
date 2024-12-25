@@ -137,19 +137,24 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     # Get response from LLM
     try:
         model = config.get("llm_model", "ollama/llama3.2:3b")
-        print(config.get("llm_model"))
         if config.get("llm_provider") == "ollama":
             # Strip 'openai/' prefix for Ollama models
             model = model.replace("openai/", "ollama/")
-        print(model)
+        print(f"Using model: {model}")
+
+        MESSAGES = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+
+        # print("Using the Following Messages:")
+        print(MESSAGES)
+
         response = completion(
             model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
+            messages=MESSAGES,
             temperature=float(config.get("llm_temperature", 0.7)),
-            max_tokens=int(config.get("llm_max_tokens", 4096)),  # Use larger context window
+            max_tokens=int(config.get("llm_max_tokens", 4096)),
             api_key=config.get("llm_api_key", "sk-123"),
             api_base=config.get("llm_api_base", "http://localhost:11434")
         )
