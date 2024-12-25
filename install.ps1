@@ -23,10 +23,26 @@ function Test-Command($Command) {
         return $true
     }
     catch {
-        return $false
+        return $False
     }
     finally {
         $ErrorActionPreference = $oldPreference
+    }
+}
+
+function Test-DockerAvailable {
+    try {
+        # Check if docker command exists
+        if (-not (Test-Command "docker")) {
+            return $False
+        }
+
+        # Try to get docker version
+        $result = docker version
+        return $LASTEXITCODE -eq 0
+    }
+    catch {
+        return $False
     }
 }
 
@@ -61,40 +77,32 @@ function Install-Dependencies {
 }
 
 function Start-DockerService {
-    Write-Host "Ensuring Docker service is running..." -ForegroundColor Yellow
+    Write-Host "Ensuring Docker is available..." -ForegroundColor Yellow
     
-    # Check if Docker service exists
-    $dockerService = Get-Service -Name "docker" -ErrorAction SilentlyContinue
-    
-    if ($null -eq $dockerService) {
-        throw "Docker service not found. Please ensure Docker is installed correctly."
+    if (-not (Test-DockerAvailable)) {
+        throw "Docker is not available. Please ensure Docker is installed correctly and the service is running."
     }
-    
-    # Start Docker service if it's not running
-    if ($dockerService.Status -ne "Running") {
+
+    # Try to start the service if it exists
+    $dockerService = Get-Service -Name "docker" -ErrorAction SilentlyContinue
+    if ($null -ne $dockerService -and $dockerService.Status -ne "Running") {
+        Write-Host "Starting Docker service..." -ForegroundColor Yellow
         Start-Service -Name "docker"
         $retries = 30
-        $dockerRunning = $false
         
-        Write-Host "Starting Docker service..." -ForegroundColor Yellow
-        while ($retries -gt 0 -and -not $dockerRunning) {
+        while ($retries -gt 0) {
             $dockerService.Refresh()
             if ($dockerService.Status -eq "Running") {
-                $dockerRunning = $true
                 break
             }
             Start-Sleep -Seconds 2
             $retries--
             Write-Host "Waiting for Docker service to start... ($retries attempts remaining)" -ForegroundColor Yellow
         }
-        
-        if (-not $dockerRunning) {
-            throw "Docker service failed to start in time"
-        }
     }
     
-    # Additional wait for Docker to be fully responsive
-    Write-Host "Waiting for Docker to be responsive..." -ForegroundColor Yellow
+    # Verify Docker is responsive
+    Write-Host "Verifying Docker is responsive..." -ForegroundColor Yellow
     $retries = 15
     while ($retries -gt 0) {
         try {
@@ -110,7 +118,7 @@ function Start-DockerService {
             }
         }
     }
-    throw "Docker is not responding. Please try starting Docker manually."
+    throw "Docker is not responding. Please verify Docker installation and try again."
 }
 
 function Install-PythonPackages {
