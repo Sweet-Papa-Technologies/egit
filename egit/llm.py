@@ -152,38 +152,38 @@ def generate_release_notes(commits: List[Dict[str, Any]], version: str) -> str:
         commit_list.append(commit_text)
     
     # Create the prompt
-    prompt = f"""Generate concise release notes for version {version} that will be used as a git tag message.
+    prompt = f"""Generate a very concise release note for version {version} suitable for a git tag message.
 
 Commits:
 {chr(10).join(commit_list)}
 
 Requirements:
-1. Start with a brief one-line version summary
-2. Group changes under these categories (only include if there are relevant changes):
-   - Features:
-   - Bug Fixes:
-   - Other Changes:
-3. Keep each bullet point short and clear
-4. Use simple text formatting (avoid markdown)
-5. Keep the total length under 500 characters
-6. Use this format:
-   Version {version}
-   <one-line summary>
+1. First line must be a clear, complete summary (this is what GitHub shows in the UI)
+2. Use this exact format:
+   <clear complete summary that can stand alone>
    
-   Features:
-   * <feature 1>
-   * <feature 2>
+   FEATURES:
+   - <feature>
+   - <feature>
    
-   Bug Fixes:
-   * <fix 1>
+   FIXES:
+   - <fix>
+   
+   CHANGES:
+   - <change>
 
-ONLY respond with the release notes, nothing else. Keep it concise."""
+3. Keep it extremely brief - each bullet should be one line
+4. No markdown, no formatting, just plain text
+5. No placeholders, only include sections that have actual changes
+6. The first line must make sense on its own as it will be shown separately
+
+ONLY respond with the release notes in the exact format above. Keep it very concise."""
 
     # Call the LLM
     response = completion(
         messages=[{
             "role": "system",
-            "content": "You are an expert at writing clear, concise release notes suitable for git tag messages."
+            "content": "You are an expert at writing clear, concise release notes for git tags that display well on GitHub."
         }, {
             "role": "user",
             "content": prompt
