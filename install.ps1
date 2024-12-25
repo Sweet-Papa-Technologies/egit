@@ -89,7 +89,7 @@ function Install-eGit {
     $retryCount = 0
     $success = $false
 
-    
+    while (-not $success -and $retryCount -lt $maxRetries) {
         try {
             if (Test-Path $installDir) {
                 if (Test-Path (Join-Path $installDir ".git")) {
@@ -116,25 +116,13 @@ function Install-eGit {
             Write-Host "Running eGit installer..." -ForegroundColor Yellow
             Push-Location $installDir
 
-            # Run installer directly with error capture
-            try {
-                python install.py
-                
-                $success = $true
+            # Run Python directly and capture full output
+            $pythonProcess = Start-Process -FilePath "python" -ArgumentList "install.py" -NoNewWindow -Wait -PassThru
+            if ($pythonProcess.ExitCode -ne 0) {
+                throw "Python installer failed with exit code $($pythonProcess.ExitCode)"
             }
-            catch {
-                Write-Host "Installation error: $_" -ForegroundColor Red
-                $retryCount++
-                if ($retryCount -lt $maxRetries) {
-                    Write-Host "Retrying... (Attempt $retryCount of $maxRetries)" -ForegroundColor Yellow
-                    Start-Sleep -Seconds 2
-                    continue
-                }
-                throw
-            }
-            finally {
-                Pop-Location
-            }
+            $success = $true
+            Pop-Location
         }
         catch {
             $retryCount++
@@ -151,7 +139,7 @@ function Install-eGit {
             }
         }
     }
-
+}
 
 try {
     Install-Dependencies
