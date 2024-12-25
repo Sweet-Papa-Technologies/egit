@@ -48,6 +48,66 @@ def get_install_dir() -> Path:
     else:
         return Path.home() / ".egit"
 
+def is_installed(install_dir: Path) -> bool:
+    """Check if eGit is already installed"""
+    return install_dir.exists() and (install_dir / ".venv").exists()
+
+def backup_config(install_dir: Path):
+    """Backup existing configuration files"""
+    config_dir = install_dir / "config_backup"
+    config_dir.mkdir(exist_ok=True)
+    
+    # Files to backup
+    backup_files = [
+        install_dir / "egit.json",
+        install_dir / ".env",
+        install_dir / "egit.db"
+    ]
+    
+    for file in backup_files:
+        if file.exists():
+            shutil.copy2(file, config_dir / file.name)
+            console.print(f"[cyan]📦 Backed up {file.name}[/cyan]")
+
+def restore_config(install_dir: Path):
+    """Restore configuration files from backup"""
+    config_dir = install_dir / "config_backup"
+    if not config_dir.exists():
+        return
+    
+    # Files to restore
+    restore_files = [
+        ("egit.json", install_dir / "egit.json"),
+        (".env", install_dir / ".env"),
+        ("egit.db", install_dir / "egit.db")
+    ]
+    
+    for backup_name, target in restore_files:
+        backup_file = config_dir / backup_name
+        if backup_file.exists():
+            shutil.copy2(backup_file, target)
+            console.print(f"[cyan]📦 Restored {backup_name}[/cyan]")
+    
+    # Clean up backup directory
+    shutil.rmtree(config_dir)
+
+def copy_package_files(install_dir: Path):
+    """Copy package files to installation directory"""
+    # Get current script directory
+    current_dir = Path(__file__).parent.absolute()
+    
+    # Copy package files
+    package_dir = install_dir / "egit"
+    if package_dir.exists():
+        shutil.rmtree(package_dir)
+    shutil.copytree(current_dir / "egit", package_dir)
+    
+    # Copy other necessary files
+    for file in ["requirements.txt", "setup.py", "README.md"]:
+        src = current_dir / file
+        if src.exists():
+            shutil.copy2(src, install_dir / file)
+
 def setup_venv(install_dir: Path):
     """Create and setup virtual environment"""
     venv_dir = install_dir / ".venv"
@@ -57,10 +117,11 @@ def setup_venv(install_dir: Path):
         TextColumn("[progress.description]{task.description}"),
         console=console
     ) as progress:
-        # Create virtual environment
-        task = progress.add_task("Creating virtual environment...", total=None)
-        venv.create(venv_dir, with_pip=True)
-        progress.remove_task(task)
+        # Create virtual environment if it doesn't exist
+        if not venv_dir.exists():
+            task = progress.add_task("Creating virtual environment...", total=None)
+            venv.create(venv_dir, with_pip=True)
+            progress.remove_task(task)
         
         # Get pip path
         if platform.system().lower() == "windows":
@@ -68,9 +129,9 @@ def setup_venv(install_dir: Path):
         else:
             pip_path = venv_dir / "bin" / "pip"
         
-        # Install requirements
-        task = progress.add_task("Installing dependencies...", total=None)
-        subprocess.run([str(pip_path), "install", "-r", "requirements.txt"], check=True)
+        # Install/upgrade requirements
+        task = progress.add_task("Installing/upgrading dependencies...", total=None)
+        subprocess.run([str(pip_path), "install", "--upgrade", "-r", str(install_dir / "requirements.txt")], check=True)
         progress.remove_task(task)
 
 def add_to_path(install_dir: Path):
@@ -104,18 +165,32 @@ def main():
     
     # Get installation directory
     install_dir = get_install_dir()
-    console.print(f"[cyan]📁 Installing to {install_dir}[/cyan]")
     
-    # Create installation directory
-    install_dir.mkdir(parents=True, exist_ok=True)
+    # Check if this is an update
+    updating = is_installed(install_dir)
+    if updating:
+        console.print("[cyan]📦 Updating existing eGit installation...[/cyan]")
+        # Backup existing configuration
+        backup_config(install_dir)
+    else:
+        console.print(f"[cyan]📁 Installing to {install_dir}[/cyan]")
+        install_dir.mkdir(parents=True, exist_ok=True)
     
-    # Setup virtual environment
+    # Copy package files
+    copy_package_files(install_dir)
+    
+    # Setup/update virtual environment
     setup_venv(install_dir)
     
-    # Add to PATH
-    add_to_path(install_dir)
+    if updating:
+        # Restore configuration
+        restore_config(install_dir)
+        console.print("[bold green]✨ eGit update complete![/bold green]")
+    else:
+        # Add to PATH for new installations
+        add_to_path(install_dir)
+        console.print("[bold green]✨ eGit installation complete![/bold green]")
     
-    console.print("[bold green]✨ eGit installation complete![/bold green]")
     console.print("\nTo get started, try:")
     console.print("  egit --help")
     console.print("  egit config --help")
