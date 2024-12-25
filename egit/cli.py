@@ -291,8 +291,7 @@ def config(
             console.print(f"[green]Set {set_key} = {value}[/green]")
         else:
             # Show help if no valid options provided
-            ctx = typer.get_current_context()
-            console.print(ctx.get_help())
+            console.print(config.help)
             
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
