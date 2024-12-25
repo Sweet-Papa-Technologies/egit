@@ -12,18 +12,18 @@
 [x] WORKING - `egit --help`
 [x] WORKING - `egit config --show`
 [x] WORKING - `egit config --help`
-[X] WORKING - `egit config --set provider` # Get the provider
+[X] WORKING - `egit config --set llm_provider` # Get the provider
 [X] WORKING - `egit config --set llm_model` # Get the model
 [X] WORKING - `egit config --set llm_api_key` # Get the API key
 [X] WORKING - `egit config --set llm_api_base` # Get the API base
 [X] WORKING - `egit config --set llm_max_tokens` # Get the max tokens
 [X] WORKING - `egit config --set llm_temperature` # Get the temperature
-[] TESTING - `egit config --set provider --value ollama` # Set the provider
-[] TESTING - `egit config --set llm_model --value openai/llama3.2:3b` # Set the model
-[] TESTING - `egit config --set llm_api_key --value <api_key>` # Set the API key
-[] TESTING - `egit config --set llm_api_base --value http://localhost:11434` # Set the API base
-[] TESTING - `egit config --set llm_max_tokens --value 4096` # Set the max tokens
-[] TESTING - `egit config --set llm_temperature --value 0.7` # Set the temperature
+[X] WORKING - `egit config --set llm_provider --value ollama` # Set the provider
+[X] WORKING - `egit config --set llm_model --value openai/llama3.2:3b` # Set the model
+[X] WORKING - `egit config --set llm_api_key --value <api_key>` # Set the API key
+[X] WORKING - `egit config --set llm_api_base --value http://localhost:11434` # Set the API base
+[X] WORKING - `egit config --set llm_max_tokens --value 4096` # Set the max tokens
+[X] WORKING - `egit config --set llm_temperature --value 0.7` # Set the temperature
 
 ### Response Quality
 
