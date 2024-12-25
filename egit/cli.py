@@ -14,7 +14,6 @@ from . import config as config_module
 
 app = typer.Typer(
     help="eGit - Enhanced Git CLI with LLM capabilities",
-    no_args_is_help=False,  # Don't show help for unhandled commands
     add_completion=False,  # Don't add completion to avoid conflicts with git
 )
 console = Console()
@@ -38,7 +37,6 @@ def pass_to_git(args: List[str]) -> None:
 
 @app.callback(invoke_without_command=True)
 def common(
-    ctx: typer.Context,
     version: Optional[bool] = typer.Option(
         None,
         "--version",
@@ -53,15 +51,8 @@ def common(
 
     Run 'egit --help' for usage information.
     """
-    # If no command is provided or command is not in our app, pass through to git
-    if ctx.invoked_subcommand is None:
-        if len(sys.argv) > 1:
-            # Skip the first argument (egit) and pass the rest to git
-            pass_to_git(sys.argv[1:])
-        else:
-            # Show help if no arguments provided
-            console.print(ctx.get_help())
-            raise typer.Exit()
+    pass
+
 
 @app.command()
 def summarize(
@@ -197,15 +188,21 @@ def config(
 
 def main():
     """Main entry point for the CLI"""
-    try:
-        app()
-    except Exception as e:
-        # If command not found in our app, pass it to git
-        if "No such command" in str(e):
-            # Skip the first argument (egit) and pass the rest to git
-            pass_to_git(sys.argv[1:])
-        else:
-            raise
+    # Print the version if requested
+    console.print(f"[green]eGit version: {__version__}[/green]")
+    console.print(sys.argv)
+
+    # If no arguments, show help
+
+    if len(sys.argv) == 1 or sys.argv[1] in ['-h', '--help']:
+        app(['--help'])
+        return
+
+    # Get the command (first argument after the script name)
+    command = sys.argv[1]
+
+    # If it's an eGit command, handle it with our app
+    app()
 
 if __name__ == "__main__":
     main()

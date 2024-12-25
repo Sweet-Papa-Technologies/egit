@@ -2,4 +2,4 @@
 eGit - A CLI tool for enhanced Git commit messages and tasks using LLMs
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.2"
