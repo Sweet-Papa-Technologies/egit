@@ -43,7 +43,7 @@ function Install-Chocolatey {
 function Install-Dependencies {
     Install-Chocolatey
 
-    if (-not (Test-Command "python")) {
+
         Write-Host "Installing Python 3.10..." -ForegroundColor Yellow
         choco install python310 -y
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
@@ -51,19 +51,17 @@ function Install-Dependencies {
         # Upgrade pip
         Write-Host "Upgrading pip..." -ForegroundColor Yellow
         python -m pip install --upgrade pip
-    }
+ 
 
-    if (-not (Test-Command "git")) {
         Write-Host "Installing Git..." -ForegroundColor Yellow
         choco install git -y
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-    }
 
-    if (-not (Test-Command "docker")) {
+
         Write-Host "Installing Docker..." -ForegroundColor Yellow
         choco install docker -y
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-    }
+  
 }
 
 function Start-DockerService {
