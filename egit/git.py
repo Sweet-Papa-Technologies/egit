@@ -2,6 +2,7 @@
 Git operations module
 """
 import subprocess
+import os
 from typing import List, Optional, Dict, Any
 from pathlib import Path
 from .config import get_config
@@ -14,10 +15,24 @@ def get_git_executable() -> str:
 def run_git_command(args: List[str], cwd: Optional[Path] = None) -> str:
     """Run a git command and return its output"""
     try:
+        # Start with current environment
+        env = os.environ.copy()
+        
+        # Add encoding settings
+        env.update({
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "PYTHONUTF8": "1"
+        })
+        
+        # Run command with UTF-8 encoding
         result = subprocess.run(
             [get_git_executable()] + args,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
+            env=env,
             check=True,
             cwd=cwd
         )
@@ -96,6 +111,9 @@ def get_repo_root() -> Path:
 
 def commit(message: str) -> None:
     """Create a new commit with the given message"""
+    # Check if there are staged changes
+    if not get_staged_changes():
+        raise Exception("No changes staged for commit")
     run_git_command(["commit", "-m", message])
 
 def get_last_tag() -> str:

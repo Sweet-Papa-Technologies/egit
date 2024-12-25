@@ -90,6 +90,29 @@ def release_notes(
         if not version.startswith('v'):
             version = f"v{version}"
         
+        # Check for uncommitted changes
+        if git.has_uncommitted_changes():
+            # Get staged changes
+            staged_changes = git.get_staged_changes()
+            if staged_changes:
+                # Ask user if they want to commit first
+                console.print("[yellow]You have staged changes. Would you like to commit them first?[/yellow]")
+                console.print("Changes to be committed:")
+                for change in staged_changes:
+                    console.print(f"  {change}")
+                
+                if typer.confirm("Commit these changes?"):
+                    # Generate commit message
+                    diffs = git.get_staged_diff()
+                    from . import llm
+                    commit_msg = llm.summarize_changes(staged_changes, diffs)
+                    git.commit(commit_msg)
+                    console.print("[green]Changes committed successfully![/green]")
+                else:
+                    raise typer.Exit("Please commit or stash your changes before creating a release.")
+            else:
+                raise typer.Exit("Please commit or stash your changes before creating a release.")
+        
         # Get commit range
         if not from_ref:
             # Get the last tag as the starting point
@@ -218,11 +241,15 @@ def summarize(
             console.print(summary)
             
             # Auto-commit if requested and there are staged changes
-            if auto_commit and staged_changes:
-                git.commit(summary)
-                console.print("\n[green]Changes committed successfully![/green]")
-            elif auto_commit:
-                console.print("\n[yellow]No staged changes to commit[/yellow]")
+            if auto_commit:
+                try:
+                    if not staged_changes:
+                        raise Exception("No changes staged for commit. Stage your changes first with 'git add'")
+                    git.commit(summary)
+                    console.print("\n[green]Changes committed successfully![/green]")
+                except Exception as e:
+                    console.print(f"\n[red]Error committing changes:[/red] {str(e)}")
+                    raise typer.Exit(1)
             
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")

@@ -4,12 +4,11 @@ eGit is a powerful CLI tool that enhances Git with LLM capabilities, making it e
 
 ## Features
 
-- 🤖 Summarize commit changes using AI
-- 📝 Generate comprehensive release notes
-- 🔄 Compare and analyze differences between commits
+- 🤖 AI-powered commit message generation from staged changes
+- 📝 Intelligent release notes generation with automatic tagging
+- 🔍 Smart change summarization for commits and branches
 - ⚙️ Flexible configuration for different LLM providers
 - 💾 Caching system for faster responses
-- 🔄 Git command passthrough for seamless integration
 
 ## Requirements
 
@@ -59,56 +58,44 @@ If you don't have admin privileges on Windows, you can manually add eGit to your
 1. Run the `setx` command shown during installation as administrator, or
 2. Add the installation directory to your PATH environment variable
 
-## Configuration
-
-eGit can be configured using environment variables or the config command:
-
-```bash
-# Set LLM provider
-egit config llm_provider ollama
-
-# Set model
-egit config llm_model openai/llama3.2:3b
-
-# Set API key (if needed)
-egit config llm_api_key your_api_key
-
-# View current configuration
-egit config llm_provider
-```
-
 ## Usage
 
-### Summarize Latest Commit
+### Summarize and Commit Changes
 ```bash
-egit summarize
+# View summary of staged changes
+egit summarize --staged
+
+# View summary of current branch changes
+egit summarize --branch
+
+# Generate summary and automatically commit staged changes
+egit summarize --commit
 ```
 
-### Summarize Specific Commit
+### Generate Release Notes and Tags
 ```bash
-egit summarize <commit-hash>
+# Generate release notes for version (draft mode)
+egit release-notes 1.0.0 --draft
+
+# Generate notes from specific range
+egit release-notes 1.0.0 --from v0.9.0 --to main
+
+# Create and push an annotated tag with release notes
+egit release-notes 1.0.0 --tag
 ```
 
-### Compare Two Commits
+### Configuration Management
 ```bash
-egit summarize-diff <commit1> <commit2>
-```
+# View current configuration
+egit config --show
 
-### Generate Release Notes
-```bash
-egit release-notes [branch-name]
-```
-
-### Regular Git Commands
-eGit passes through any unrecognized commands to Git, so you can use it as a drop-in replacement:
-```bash
-egit status
-egit add .
-egit commit -m "feat: add new feature"
+# Set configuration values
+egit config --set llm_provider ollama
+egit config --set llm_model ollama/llama3.2:3b
+egit config --set llm_api_key your_api_key
 ```
 
 ### Version Information
-Get the current version of eGit:
 ```bash
 egit --version
 # or
@@ -119,8 +106,8 @@ egit -v
 
 - `GIT_EXECUTABLE`: Path to Git executable (default: system git)
 - `LLM_PROVIDER`: LLM provider to use (default: ollama)
-- `LLM_MODEL`: Model name (default: openai/llama3.2:3b)
-- `LLM_API_KEY`: API key for the LLM service
+- `LLM_MODEL`: Model name (default: ollama/llama3.2:3b)
+- `LLM_API_KEY`: API key for the LLM service (default: sk-123 for Ollama)
 - `LLM_API_BASE`: Base URL for the LLM API (default: http://localhost:11434)
 - `LLM_MAX_TOKENS`: Maximum tokens for LLM response (default: 4096)
 - `LLM_TEMPERATURE`: Temperature for LLM sampling (default: 0.7)
