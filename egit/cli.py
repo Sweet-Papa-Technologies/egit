@@ -214,6 +214,13 @@ def summarize(
             changes = []
             diffs = []
             staged_changes = None
+
+            if auto_commit:
+                console.print("[yellow]Auto-commit is enabled. Staged changes will be committed automatically.[/yellow]")
+                staged = True
+
+                if branch:
+                    staged = False
             
             # Get staged changes if requested or if no specific option is chosen
             if staged or (not staged and not branch):
