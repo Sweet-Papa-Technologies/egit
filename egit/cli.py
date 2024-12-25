@@ -102,6 +102,7 @@ def release_notes(
                     console.print(f"  {change}")
                 
                 if typer.confirm("Commit these changes?"):
+                    
                     # Generate commit message
                     diffs = git.get_staged_diff()
                     console.print("\n[yellow]Staged Changes:[/yellow]")
@@ -264,6 +265,7 @@ def summarize(
 
 @app.command()
 def config(
+    ctx: typer.Context,
     show: bool = typer.Option(
         False,
         "--show",
@@ -276,6 +278,7 @@ def config(
     ),
     value: Optional[str] = typer.Option(
         None,
+        "--value",
         help="Value for the configuration key"
     )
 ):
@@ -292,13 +295,21 @@ def config(
                 if 'api_key' in key.lower():
                     val = '****' if val else ''
                 console.print(f"  {key}: {val}")
-        elif set_key and value:
-            # Set configuration value
-            config_module.update_config(set_key, value)
-            console.print(f"[green]Set {set_key} = {value}[/green]")
+        elif set_key:
+            if not value:
+                # If --set is provided without --value, show the current value
+                current_config = config_module.get_config()
+                val = current_config.get(set_key, '')
+                if 'api_key' in set_key.lower():
+                    val = '****' if val else ''
+                console.print(f"{set_key}: {val}")
+            else:
+                # Set configuration value
+                config_module.update_config(set_key, value)
+                console.print(f"[green]Set {set_key} = {value}[/green]")
         else:
             # Show help if no valid options provided
-            console.print(config.help)
+            console.print(ctx.get_help())
             
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")

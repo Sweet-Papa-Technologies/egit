@@ -7,7 +7,7 @@ from .config import load_config, get_config
 import os
 
 SUMMARY_PROMPT = """
-You are a helpful assistant that summarizes GitLab commit messages. Please summarize all of the changes this person has made to their code based off the commit messages.
+You are a helpful assistant that summarizes Git commit messages. Please summarize all of the changes this person has made to their code based off the commit messages.
 {context}
 """
 
@@ -54,10 +54,10 @@ async def get_llm_response(prompt: str, max_tokens: Optional[int] = None) -> str
     except Exception as e:
         raise Exception(f"Error getting LLM response: {str(e)}")
 
-async def summarize_commits(commit_messages: str) -> str:
-    """Summarize commit messages using LLM"""
-    prompt = SUMMARY_PROMPT.format(context=commit_messages)
-    return await get_llm_response(prompt)
+# async def summarize_commits(commit_messages: str) -> str:
+#     """Summarize commit messages using LLM"""
+#     prompt = SUMMARY_PROMPT.format(context=commit_messages)
+#     return await get_llm_response(prompt)
 
 # async def generate_release_notes(commit_messages: str) -> str:
 #     """Generate release notes from commit messages using LLM"""
@@ -91,26 +91,43 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     changes_text = "\n".join(changes)
     diff_text = "\n".join(diffs)
     
-    prompt = f"""Please summarize these Git changes in a clear, concise way:
+    # Create a more specific system prompt
+    system_prompt = """You are a Git commit message generator. You will ONLY output a single line commit message.
+    Your response must:
+    1. Start with a verb in present tense
+    2. Be under 72 characters
+    3. Describe the main code change
+    4. NOT include phrases like "this commit" or "summary"
+    5. NOT explain or justify the changes
+    6. NOT give suggestions or improvements
+    """
 
-File Changes:
-{changes_text}
+    # Create a more structured user prompt
+    prompt = f"""Git changes to summarize:
 
-Detailed Changes:
-{diff_text}
+    Changes: {changes_text}
 
-Focus on:
-1. The main types of changes (added, modified, deleted files)
-2. Key components or areas that were changed
-3. Specific code changes and their purpose
-4. Any patterns in the changes
+    Diff: {diff_text}
 
-Keep the summary brief but informative.
-ENSURE the summary is a single paragraph, on a single line.
-Make the summary suitable for a commit message.
+    INSTRUCTIONS:
+    1. Write ONE LINE starting with a present-tense verb
+    2. Focus on what changed in the code
+    3. Keep it under 72 characters
+    4. Do not explain or justify anything
+    5. Do not make suggestions
 
-ONLY respond with the summary, nothing else.
-"""
+    BAD: "This commit improves the code by updating the git handling system which could be made better by..."
+    GOOD: "Update git diff handling to include uncommitted changes"
+
+    YOUR RESPONSE MUST BE EXACTLY ONE LINE WITH NO EXPLANATION OR EXTRA TEXT.
+    RESPOND WITH ONLY THE COMMIT MESSAGE:
+    """
+
+    # print("Using the Following Prompt:")
+    # print(prompt)
+
+    # print("Using the Following System Prompt:")
+    # print(system_prompt)
 
     # Get response from LLM
     try:
@@ -118,23 +135,30 @@ ONLY respond with the summary, nothing else.
         if config.get("llm_provider") == "ollama":
             # Strip 'openai/' prefix for Ollama models
             model = model.replace("openai/", "ollama/")
-            
+
+        print(f"Using model: {model}")
+
+        MESSAGES = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ]
+
+        # print("Using the Following Messages:")
+        # print(MESSAGES)
+
         response = completion(
             model=model,
-            messages=[{
-                "role": "system",
-                "content": "You are a helpful assistant that summarizes Git changes in a clear, concise way. Focus on the specific code changes and their purpose."
-            }, {
-                "role": "user",
-                "content": prompt
-            }],
+            messages=MESSAGES,
             temperature=float(config.get("llm_temperature", 0.7)),
-            max_tokens=int(config.get("llm_max_tokens", 4096)),
+            max_tokens=int(config.get("llm_max_tokens", 16000)),
             api_key=config.get("llm_api_key", "sk-123"),
             api_base=config.get("llm_api_base", "http://localhost:11434")
         )
         
-        return response.choices[0].message.content.strip()
+        # Clean up the response
+        summary = response.choices[0].message.content.strip()
+                
+        return summary
     except Exception as e:
         return f"Error generating summary: {str(e)}"
 
