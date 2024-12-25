@@ -164,7 +164,7 @@ Generate release notes that:
 3. Are clear and user-focused
 4. Include relevant technical details
 5. Follow a consistent format
-6. Are written in markdown
+6. Are written in a format compatible with git's tag message command
 
 ONLY respond with the release notes, nothing else. DO NOT include Placeholders.
 """
