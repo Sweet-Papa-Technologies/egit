@@ -102,6 +102,7 @@ def release_notes(
                     console.print(f"  {change}")
                 
                 if typer.confirm("Commit these changes?"):
+                    
                     # Generate commit message
                     diffs = git.get_staged_diff()
                     console.print("\n[yellow]Staged Changes:[/yellow]")
