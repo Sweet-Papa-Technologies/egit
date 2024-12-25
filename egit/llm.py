@@ -92,14 +92,15 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     diff_text = "\n".join(diffs)
     
     # Create a more specific system prompt
-    """You are a Git commit message generator. You will ONLY output a single line commit message.
+    system_prompt = """You are a Git commit message generator. You will ONLY output a single line commit message.
     Your response must:
     1. Start with a verb in present tense
     2. Be under 72 characters
     3. Describe the main code change
     4. NOT include phrases like "this commit" or "summary"
     5. NOT explain or justify the changes
-    6. NOT give suggestions or improvements"""
+    6. NOT give suggestions or improvements
+    """
 
     # Create a more structured user prompt
     prompt = f"""Git changes to summarize:
