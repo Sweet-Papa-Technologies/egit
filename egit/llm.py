@@ -93,43 +93,43 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     
     # Create a more specific system prompt
     system_prompt = """You are a Git commit message generator that creates clear, concise, and informative summaries of code changes.
-You will be given a list of changed files and their git diffs. Your task is to write a commit message that explains what changed and why.
+    You will be given a list of changed files and their git diffs. Your task is to write a commit message that explains what changed and why.
 
-Follow these rules for the commit message:
-1. Start with a verb in the present tense (e.g., "Add", "Fix", "Update", "Refactor")
-2. Do not use words like "seems" or "appears", speak with confidence
-3. Focus on the actual code changes shown in the diff, not just the file names
-4. Mention specific components or features that were modified
-5. Include any breaking changes or important notes
+    Follow these rules for the commit message:
+    1. Start with a verb in the present tense (e.g., "Add", "Fix", "Update", "Refactor")
+    2. Do not use words like "seems" or "appears", speak with confidence
+    3. Focus on the actual code changes shown in the diff, not just the file names
+    4. Mention specific components or features that were modified
+    5. Include any breaking changes or important notes
 
-DO NOT:
-- Include the word "summary" or phrases like "this commit"
-- Write multiple paragraphs or use line breaks
-- Use generic phrases like "various changes" or "multiple updates"
-- Simply list the files that changed
-"""
+    DO NOT:
+    - Include the word "summary" or phrases like "this commit"
+    - Write multiple paragraphs or use line breaks
+    - Use generic phrases like "various changes" or "multiple updates"
+    - Simply list the files that changed
+    """
 
     # Create a more structured user prompt
     prompt = f"""Here are the Git changes to summarize:
 
-Changed Files:
-{changes_text}
+    Changed Files:
+    {changes_text}
 
-Git Diff:
-{diff_text}
+    Git Diff:
+    {diff_text}
 
-Write a Git commit message that describes these changes.
-Focus on the actual code changes shown in the diff, not just which files were modified.
-The message should be a single line.
+    Write a Git commit message that describes these changes.
+    Focus on the actual code changes shown in the diff, not just which files were modified.
+    The message should be a single line.
 
-ONLY RESPOND WITH THE COMMIT MESSAGE
-"""
+    ONLY RESPOND WITH THE COMMIT MESSAGE
+    """
 
-    print("Using the Following Prompt:")
-    print(prompt)
+    # print("Using the Following Prompt:")
+    # print(prompt)
 
-    print("Using the Following System Prompt:")
-    print(system_prompt)
+    # print("Using the Following System Prompt:")
+    # print(system_prompt)
 
     # Get response from LLM
     try:
@@ -141,7 +141,7 @@ ONLY RESPOND WITH THE COMMIT MESSAGE
         response = completion(
             model=model,
             messages=[
-                {"role": "system", "content": system_prompt},
+                #{"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
             temperature=float(config.get("llm_temperature", 0.7)),
