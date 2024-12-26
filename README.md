@@ -11,7 +11,7 @@ eGit is a powerful CLI tool that enhances Git with LLM capabilities, making it e
 - 💾 Caching system for faster responses
 
 ## Requirements
-
+- macOS or Windows (Not tested on Linux, but should work and will be supported in the future)
 - Python 3.10 or higher
 - Git
 - One of the following LLM providers:

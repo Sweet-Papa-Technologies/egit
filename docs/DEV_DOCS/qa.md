@@ -8,18 +8,13 @@ Beta Release TODO:
     - [x] release-notes
     - [x] config
     - [x] --help
-- [-] Test that all configuration options work as expected
+- [X] Test that all configuration options work as expected
     - [x] Ollama
     - [x] LM Studio
     - [X] OpenAI
     - [X] Anthropic
-    - [] Gemini
-    - [] Vertex AI
-- [-] Test common LLM models, note the ones that don't work
-- [-] Make updated one line installer scripts (Python / Git Install & Checks):
-    - [] Windows
-    - [] Linux
-    - [] MacOS
+    - [X] Gemini
+    - [-] Vertex AI
 - [-] Address major bugs
 - [-] Ensure Documentation is up to date
     - [] Core command documentation
@@ -71,4 +66,3 @@ Beta Release TODO:
 - OpenAI API
 - Anthropic API
 - Gemini API
-- Vertex AI API
