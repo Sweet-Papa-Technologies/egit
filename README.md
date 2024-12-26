@@ -160,7 +160,7 @@ egit config --set llm_max_tokens --value 8192 # NOTE: 8192 is the max for Anthro
 egit config --set llm_provider --value gemini
 egit config --set llm_model --value gemini/gemini-2.0-flash-exp
 egit config --set llm_api_key --value mygeminiapikey
-egit config --set llm_api_base --value https://generativelanguage.googleapis.com
+egit config --set llm_api_base --value https://generativelanguage.googleapis.com/v1beta
 ```
 
 ### Google Vertex AI
