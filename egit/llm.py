@@ -31,47 +31,16 @@ def setup_llm_env():
         if config.get("llm_api_base"):
             os.environ["OPENAI_API_BASE"] = config["llm_api_base"]
 
-async def get_llm_response(prompt: str, max_tokens: Optional[int] = None) -> str:
-    """Get response from LLM"""
-    config = get_config()
-    setup_llm_env()
-    
-    try:
-        model = config.get("llm_model", "ollama/llama3.2:3b")
-        if config.get("llm_provider") == "ollama":
-            # Strip 'openai/' prefix for Ollama models
-            model = model.replace("openai/", "ollama/")
-            
-        response = await completion(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=float(config.get("llm_temperature", 0.7)),
-            max_tokens=int(max_tokens or config.get("llm_max_tokens", 4096)),
-            api_key=config.get("llm_api_key", "sk-123"),
-            api_base=config.get("llm_api_base", "http://localhost:11434")
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        raise Exception(f"Error getting LLM response: {str(e)}")
-
-# async def summarize_commits(commit_messages: str) -> str:
-#     """Summarize commit messages using LLM"""
-#     prompt = SUMMARY_PROMPT.format(context=commit_messages)
-#     return await get_llm_response(prompt)
-
-# async def generate_release_notes(commit_messages: str) -> str:
-#     """Generate release notes from commit messages using LLM"""
-#     prompt = RELEASE_NOTES_PROMPT.format(context=commit_messages)
-#     return await get_llm_response(prompt)
-
 def get_llm_config() -> Dict[str, Any]:
     """Get LLM configuration"""
     config = get_config()
     setup_llm_env()
     model = config.get("llm_model", "ollama/llama3.2:3b")
     if config.get("llm_provider") == "ollama":
-        # Strip 'openai/' prefix for Ollama models
         model = model.replace("openai/", "ollama/")
+
+    print(f"Using LLM model: {model}")
+    
     return {
         "model": model,
         "api_base": config.get("llm_api_base", "http://localhost:11434"),
@@ -79,6 +48,21 @@ def get_llm_config() -> Dict[str, Any]:
         "max_tokens": int(config.get("llm_max_tokens", "500")),
         "temperature": float(config.get("llm_temperature", "0.7")),
     }
+
+async def get_llm_response(prompt: str, max_tokens: Optional[int] = None) -> str:
+    """Get response from LLM"""
+    config = get_config()
+    setup_llm_env()
+    
+    try:
+        llm_config = get_llm_config()
+        response = await completion(
+            messages=[{"role": "user", "content": prompt}],
+            **llm_config
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        raise Exception(f"Error getting LLM response: {str(e)}")
 
 def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     """Generate a natural language summary of the changes"""
@@ -131,13 +115,6 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
 
     # Get response from LLM
     try:
-        model = config.get("llm_model", "ollama/llama3.2:3b")
-        if config.get("llm_provider") == "ollama":
-            # Strip 'openai/' prefix for Ollama models
-            model = model.replace("openai/", "ollama/")
-
-        print(f"Using model: {model}")
-
         MESSAGES = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
@@ -146,13 +123,10 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
         # print("Using the Following Messages:")
         # print(MESSAGES)
 
+        llm_config = get_llm_config()
         response = completion(
-            model=model,
             messages=MESSAGES,
-            temperature=float(config.get("llm_temperature", 0.7)),
-            max_tokens=int(config.get("llm_max_tokens", 16000)),
-            api_key=config.get("llm_api_key", "sk-123"),
-            api_base=config.get("llm_api_base", "http://localhost:11434")
+            **llm_config
         )
         
         # Clean up the response
