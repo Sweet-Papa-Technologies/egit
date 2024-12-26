@@ -1,25 +1,23 @@
-# eGit - Enhanced Git CLI with LLM Capabilities
+# eGit - Extended Git CLI with LLM Capabilities
 
-eGit is a powerful CLI tool that enhances Git with LLM capabilities, making it easier to work with commit messages, generate release notes, and understand code changes.
+eGit is a CLI tool that extends Git with LLM capabilities, making it easier to work with commit messages, generate release notes, and understand code changes.
 
 ## Features
-
 - 🤖 AI-powered commit message generation from staged changes
 - 📝 Intelligent release notes generation with automatic tagging
 - 🔍 Smart change summarization for commits and branches
 - ⚙️ Flexible configuration for different LLM providers
-- 💾 Caching system for faster responses
 
 ## Requirements
-- macOS or Windows (Not tested on Linux, but should work and will be supported in the future)
-- Python 3.10 or higher
-- Git
+- macOS or Windows (Not tested on Linux, but should work and will be fully supported in the future)
+- Python 3.10 or higher preinstalled
+- Git preinstalled
 - One of the following LLM providers:
-  - LM Studio (default)
-  - Ollama 
+  - Ollama (default)
+  - LM Studio (Recommended for local models)
   - OpenAI
   - Anthropic
-  - Google Vertex AI
+  - Google Gemini
 
 ## Installation
 
@@ -55,8 +53,18 @@ The installer will:
 
 ### Manual PATH Configuration
 If you don't have admin privileges on Windows, you can manually add eGit to your PATH:
-1. Run the `setx` command shown during installation as administrator, or
+1. Run the `setx` command shown during installation, or
 2. Add the installation directory to your PATH environment variable
+
+Alternatively, you can manually call eGit from the install directory:
+
+```shell
+# macOS or Linux
+~/.egit/.venv/bin/egit
+
+# Windows
+C:\ProgramData\egit\.venv\Scripts\egit.exe
+```
 
 ## Usage
 NOTE: API KEY value must be set, otherwise LLM calls will fail. If your endpoint does not take an API key, please set a fake value such as `sk-123`. The value will be ignored if your endpoint does not need it.
