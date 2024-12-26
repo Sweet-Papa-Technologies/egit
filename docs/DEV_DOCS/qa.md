@@ -12,7 +12,7 @@ Beta Release TODO:
     - [x] Ollama
     - [x] LM Studio
     - [X] OpenAI
-    - [] Anthropic
+    - [X] Anthropic
     - [] Gemini
     - [] Vertex AI
 - [-] Test common LLM models, note the ones that don't work

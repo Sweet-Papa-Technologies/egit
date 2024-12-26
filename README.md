@@ -152,7 +152,15 @@ egit config --set llm_provider --value anthropic
 egit config --set llm_model --value anthropic/claude-3-5-sonnet-20241022
 egit config --set llm_api_key --value myanthropicapikey
 egit config --set llm_api_base --value https://api.anthropic.com
-egit config --set llm_max_tokens --value 8192
+egit config --set llm_max_tokens --value 8192 # NOTE: 8192 is the max for Anthropic
+```
+
+### Gemini
+```bash
+egit config --set llm_provider --value gemini
+egit config --set llm_model --value gemini/gemini-2.0-flash-exp
+egit config --set llm_api_key --value mygeminiapikey
+egit config --set llm_api_base --value https://generativelanguage.googleapis.com
 ```
 
 ### Google Vertex AI
