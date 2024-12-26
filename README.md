@@ -161,6 +161,7 @@ egit config --set llm_provider --value gemini
 egit config --set llm_model --value gemini/gemini-1.5-pro
 egit config --set llm_api_key --value mygeminiapikey
 egit config --set llm_api_base --value https://generativelanguage.googleapis.com
+
 ```
 
 ### Google Vertex AI
