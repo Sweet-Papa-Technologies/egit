@@ -152,6 +152,8 @@ egit config --set llm_provider --value anthropic
 egit config --set llm_model --value anthropic/claude-3-5-sonnet-20241022
 egit config --set llm_api_key --value myanthropicapikey
 egit config --set llm_api_base --value https://api.anthropic.com
+egit config --set llm_max_tokens --value 8192
+```
 
 ### Google Vertex AI
 ```bash
