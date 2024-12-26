@@ -64,6 +64,9 @@ def get_config() -> Dict[str, Any]:
 def update_config(key: str, value: Any) -> None:
     """Update a configuration value"""
     config = load_config()
+    # Ensure the key exists
+    if key not in config:
+        raise KeyError(f"Key '{key}' does not exist in the configuration")
     config[key] = value
     save_config(config)
 
