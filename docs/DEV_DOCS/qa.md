@@ -14,13 +14,13 @@ Beta Release TODO:
     - [X] OpenAI
     - [X] Anthropic
     - [X] Gemini
-    - [-] Vertex AI
-- [-] Address major bugs
-- [-] Ensure Documentation is up to date
-    - [] Core command documentation
-    - [] Configuration documentation
-    - [] LLM provider documentation
-    - [] LLM model documentation
+    - [-] Vertex AI (Not supported yet)
+- [x] Address major bugs
+- [x] Ensure Documentation is up to date
+    - [x] Core command documentation
+    - [x] Configuration documentation
+    - [x] LLM provider documentation
+    - [x] LLM model documentation
 
 ## Post Development TODO:
 - [] Test the app end to end for general feedback and bug reports

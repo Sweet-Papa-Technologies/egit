@@ -2,6 +2,16 @@
 
 eGit is a CLI tool that extends Git with LLM capabilities, making it easier to work with commit messages, generate release notes, and understand code changes.
 
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Environment Variables](#environment-variables)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Features
 - 🤖 AI-powered commit message generation from staged changes
 - 📝 Intelligent release notes generation with automatic tagging
@@ -127,7 +137,12 @@ Settings can be set via Env Vars or via CLI flags. These are the available envir
 - `LLM_TEMPERATURE`: Temperature for LLM sampling (default: 0.7)
 
 ## Example LLM Provider Setup and Commands
-Settings can be set via Env Vars or via CLI flags. These are the CLI Flags for each LLM Provider:
+Settings can be set via Env Vars or via CLI flags. These are the CLI Flags
+
+Max Tokens and Temperature are optional, but to set them, use the following commands:
+
+`egit config --set llm_max_tokens --value 4096` 
+`egit config --set llm_temperature --value 0.7`
 
 ### Ollama
 ```bash
@@ -172,6 +187,21 @@ egit config --set llm_api_key --value mygeminiapikey
 ### Google Vertex AI
 Not Supported yet (Coming Soon!)
 
+## Tested Models
+These models have been tested with eGit so far, and should work as expected. Most models that are 8b or highershould work (Even 1b and 3b seem to work OK via LM Studio), so feel free to try out whatever you like.
+
+- ollama/llama3.1:8b # Seems to work OK, except for larger contexts (may be an Ollama config issue)
+- lm_studio/hermes-3-llama-3.1-8b # Works Great
+- openai/gpt-4o # Works Excellent
+- anthropic/claude-3-5-sonnet-20241022 # Works Excellent
+- gemini/gemini-1.5-pro # Works Excellent
+
+NOTE: We use LiteLLM to manage the LLM API, so we can use any LLM provider that LiteLLM supports generally. Please see [LiteLLM Providers](https://docs.litellm.ai/docs/providers) for more information on supported LLM providers.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is released under the [Apache License](LICENSE).
