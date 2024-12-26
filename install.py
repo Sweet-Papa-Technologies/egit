@@ -133,12 +133,12 @@ def add_to_path(install_dir: Path) -> bool:
         # Add to .bashrc or .zshrc
         shell_rc = Path.home() / (".zshrc" if os.path.exists(Path.home() / ".zshrc") else ".bashrc")
         with open(shell_rc, "a") as f:
-            f.write(f'\nexport PATH="$PATH:{str(install_dir) + "/.venv/Scripts"}"\n')
+            f.write(f'\nexport PATH="$PATH:{str(install_dir) + "/.venv/bin"}"\n')
         console.print(f"[cyan]✨ Added eGit to PATH in {shell_rc}[/cyan]")
         console.print("[yellow]To use eGit from any directory, either:[/yellow]")
         # For Linux/macOS
         console.print("1. Run the following command:")
-        console.print(f'[cyan]echo "export PATH="$PATH:{str(install_dir) + "/.venv/Scripts"}" >> ~/.bash_profile[/cyan]')
+        console.print(f'[cyan]echo "export PATH="$PATH:{str(install_dir) + "/.venv/bin"}" >> ~/.bash_profile[/cyan]')
         console.print("2. Or Restart your terminal")
         return True
 
