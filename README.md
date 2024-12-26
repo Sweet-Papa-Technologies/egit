@@ -146,6 +146,13 @@ egit config --set llm_api_key --value myopenaiapikey
 egit config --set llm_api_base --value https://api.openai.com/v1
 ```
 
+### Anthropic
+```bash
+egit config --set llm_provider --value anthropic
+egit config --set llm_model --value anthropic/claude-3-5-sonnet-20241022
+egit config --set llm_api_key --value myanthropicapikey
+egit config --set llm_api_base --value https://api.anthropic.com/v1
+
 ### Google Vertex AI
 ```bash
 egit config --set llm_provider --value vertex
