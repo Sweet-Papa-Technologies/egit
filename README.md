@@ -61,6 +61,13 @@ If you don't have admin privileges on Windows, you can manually add eGit to your
 ## Usage
 NOTE: API KEY value must be set, otherwise LLM calls will fail. If your endpoint does not take an API key, please set a fake value such as `sk-123`. The value will be ignored if your endpoint does not need it.
 
+#### How this would typically be used:
+```bash
+git add .
+egit summarize --commit
+git push
+```
+
 ### Summarize and Commit Changes
 ```bash
 # View summary of staged changes
@@ -73,20 +80,10 @@ egit summarize --branch
 egit summarize --commit
 ```
 
-#### How this would typically be used:
-```bash
-git add .
-egit summarize --commit
-git push
-```
-
 ### Generate Release Notes and Tags
 ```bash
 # Generate release notes for version (draft mode)
 egit release-notes 1.0.0 --draft
-
-# Generate notes from specific range
-egit release-notes 1.0.0 --from v0.9.0 --to main
 
 # Create and push an annotated tag with release notes
 egit release-notes 1.0.0 --tag
@@ -98,9 +95,9 @@ egit release-notes 1.0.0 --tag
 egit config --show
 
 # Set configuration values
-egit config --set llm_provider ollama
-egit config --set llm_model ollama/llama3.2:3b
-egit config --set llm_api_key your_api_key
+egit config --set llm_provider --value ollama
+egit config --set llm_model --value ollama/llama3.2:3b
+egit config --set llm_api_key --value your_api_key
 ```
 
 ### Version Information
@@ -111,6 +108,7 @@ egit -v
 ```
 
 ## Environment Variables
+Settings can be set via Env Vars or via CLI flags. These are the available environment variables:
 
 - `GIT_EXECUTABLE`: Path to Git executable (default: system git)
 - `LLM_PROVIDER`: LLM provider to use (default: ollama)
@@ -120,7 +118,8 @@ egit -v
 - `LLM_MAX_TOKENS`: Maximum tokens for LLM response (default: 4096)
 - `LLM_TEMPERATURE`: Temperature for LLM sampling (default: 0.7)
 
-## Example LLM Provider Setup
+## Example LLM Provider Setup and Commands
+Settings can be set via Env Vars or via CLI flags. These are the CLI Flags for each LLM Provider:
 
 ### Ollama
 ```bash
@@ -163,12 +162,8 @@ egit config --set llm_api_key --value mygeminiapikey
 ```
 
 ### Google Vertex AI
-```bash
-egit config --set llm_provider --value vertex
-egit config --set llm_model --value projects/1234567890/locations/us-central1/models/1234567890
-egit config --set llm_api_key --value myvertexapikey
-egit config --set llm_api_base --value http://localhost:1234/v1
-```
+Not Supported yet (Coming Soon!)
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
