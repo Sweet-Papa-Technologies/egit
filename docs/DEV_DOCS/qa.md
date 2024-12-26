@@ -1,14 +1,45 @@
 # QA Checks for Alpha Release
 
 ## Testing
+Beta Release TODO:
 
+- [x] Test that all commands work as expected
+    - [x] summarize
+    - [x] release-notes
+    - [x] config
+    - [x] --help
+- [-] Test that all configuration options work as expected
+    - [x] Ollama
+    - [x] LM Studio
+    - [] OpenAI
+    - [] Anthropic
+    - [] Gemini
+    - [] Vertex AI
+- [-] Test common LLM models, note the ones that don't work
+- [-] Make updated one line installer scripts (Python / Git Install & Checks):
+    - [] Windows
+    - [] Linux
+    - [] MacOS
+- [-] Address major bugs
+- [-] Ensure Documentation is up to date
+    - [] Core command documentation
+    - [] Configuration documentation
+    - [] LLM provider documentation
+    - [] LLM model documentation
+
+## Post Development TODO:
+- [] Test the app end to end for general feedback and bug reports
+- [] Ensure repository is clean and ready for release
+- [] Update the docs with marketing materals and branding
+- [] Update the 
+- [] Create blog post
+- [] Create dev.to post
 ### Commands
 [x] WORKING - `egit summarize --staged`
 [x] WORKING - `egit summarize --branch`
-[] UNTESTED - `egit summarize --commit`
-[] UNTESTED - `egit release-notes 1.0.0 --draft`
-[] UNTESTED - `egit release-notes 1.0.0 --from v0.9.0 --to main`
-[] UNTESTED - `egit release-notes 1.0.0 --tag`
+[X] WORKING - `egit summarize --commit`
+[X] WORKING - `egit release-notes 1.0.0 --draft`
+[X] WORKING - `egit release-notes 0.4.3 --tag`
 [x] WORKING - `egit --help`
 [x] WORKING - `egit config --show`
 [x] WORKING - `egit config --help`
@@ -27,6 +58,9 @@
 
 ### Response Quality
 
-[] UNTESTED - `egit summarize --staged`
-[] UNTESTED - `egit summarize --branch`
-[] UNTESTED - `egit summarize --commit`
+- Ollama API
+- LM Studio API
+- OpenAI API
+- Anthropic API
+- Gemini API
+- Vertex AI API

@@ -138,11 +138,19 @@ egit config --set llm_api_key sk-123
 egit config --set llm_api_base --value http://localhost:1221/v1
 ```
 
+### OpenAI
+```bash
+egit config --set llm_provider --value openai
+egit config --set llm_model --value openai/gpt-4o
+egit config --set llm_api_key --value myopenaiapikey
+egit config --set llm_api_base --value https://api.openai.com/v1
+```
+
 ### Google Vertex AI
 ```bash
-egit config --set llm_provider vertex
-egit config --set llm_model projects/1234567890/locations/us-central1/models/1234567890
-egit config --set llm_api_key sk-123
+egit config --set llm_provider --value vertex
+egit config --set llm_model --value projects/1234567890/locations/us-central1/models/1234567890
+egit config --set llm_api_key --value myvertexapikey
 egit config --set llm_api_base --value http://localhost:1234/v1
 ```
 ## Contributing
