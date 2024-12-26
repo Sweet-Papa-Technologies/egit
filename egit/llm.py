@@ -39,15 +39,22 @@ def get_llm_config() -> Dict[str, Any]:
     if config.get("llm_provider") == "ollama":
         model = model.replace("openai/", "ollama/")
 
-    print(f"Using LLM model: {model}")
-    
-    return {
+    LLM_CONFIG = {
         "model": model,
         "api_base": config.get("llm_api_base", "http://localhost:11434"),
         "api_key": config.get("llm_api_key", "sk-123"),
         "max_tokens": int(config.get("llm_max_tokens", "500")),
         "temperature": float(config.get("llm_temperature", "0.7")),
     }
+
+    provider = config.get("llm_provider", "ollama").lower() 
+    
+    if provider == "gemini" or provider == "vertex_ai":
+        LLM_CONFIG["api_base"] = None # Let LiteLLM handle this
+
+    print(f"Using LLM model: {LLM_CONFIG['model']}")
+    
+    return LLM_CONFIG
 
 async def get_llm_response(prompt: str, max_tokens: Optional[int] = None) -> str:
     """Get response from LLM"""
