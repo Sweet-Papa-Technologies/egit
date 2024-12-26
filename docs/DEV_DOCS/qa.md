@@ -11,7 +11,7 @@ Beta Release TODO:
 - [-] Test that all configuration options work as expected
     - [x] Ollama
     - [x] LM Studio
-    - [] OpenAI
+    - [X] OpenAI
     - [] Anthropic
     - [] Gemini
     - [] Vertex AI
@@ -31,9 +31,17 @@ Beta Release TODO:
 - [] Test the app end to end for general feedback and bug reports
 - [] Ensure repository is clean and ready for release
 - [] Update the docs with marketing materals and branding
-- [] Update the 
+- [] Update the SPT Website / Add Blog Section
+- [] Update the SPT Social Media Accounts
+    - [] Twitter
+    - [] Discord
+    - [] GitHub
+    - [] Facebook
+    - [] BlueSky
 - [] Create blog post
 - [] Create dev.to post
+- [] Post app to Socials
+
 ### Commands
 [x] WORKING - `egit summarize --staged`
 [x] WORKING - `egit summarize --branch`
