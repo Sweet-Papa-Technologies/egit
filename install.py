@@ -125,7 +125,7 @@ def add_to_path(install_dir: Path) -> bool:
         import winreg
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment", 0, winreg.KEY_ALL_ACCESS) as key:
             current_path = winreg.QueryValueEx(key, "PATH")[0]
-            if str(install_dir + "\\.venv\\Scripts") not in current_path:
+            if (str(install_dir) + "\\.venv\\Scripts") not in current_path:
                 new_path = f"{current_path};{install_dir}"
                 winreg.SetValueEx(key, "PATH", 0, winreg.REG_EXPAND_SZ, new_path)
         return True
@@ -133,7 +133,13 @@ def add_to_path(install_dir: Path) -> bool:
         # Add to .bashrc or .zshrc
         shell_rc = Path.home() / (".zshrc" if os.path.exists(Path.home() / ".zshrc") else ".bashrc")
         with open(shell_rc, "a") as f:
-            f.write(f'\nexport PATH="$PATH:{install_dir + "/.venv/Scripts"}"\n')
+            f.write(f'\nexport PATH="$PATH:{str(install_dir) + "/.venv/Scripts"}"\n')
+        console.print(f"[cyan]✨ Added eGit to PATH in {shell_rc}[/cyan]")
+        console.print("[yellow]To use eGit from any directory, either:[/yellow]")
+        # For Linux/macOS
+        console.print("1. Run the following command:")
+        console.print(f'[cyan]echo "export PATH="$PATH:{str(install_dir) + "/.venv/Scripts"}" >> ~/.bash_profile[/cyan]')
+        console.print("2. Or Restart your terminal")
         return True
 
 def main():
