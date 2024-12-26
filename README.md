@@ -11,6 +11,7 @@ eGit is a CLI tool that extends Git with LLM capabilities, making it easier to w
 - [Environment Variables](#environment-variables)
 - [Contributing](#contributing)
 - [License](#license)
+- [Full Documentation](#full-documentation)
 
 ## Features
 - 🤖 AI-powered commit message generation from staged changes
@@ -205,3 +206,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is released under the [Apache License](LICENSE).
+
+## Full Documentation
+
+For more information, visit [Documentation](docs/USER_DOCS/README.md).
