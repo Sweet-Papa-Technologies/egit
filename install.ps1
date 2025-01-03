@@ -67,7 +67,7 @@ if ($currentPath -notlike "*$scriptsDir*") {
         Write-Host "[*] Note: You may need to restart your terminal for PATH changes to take effect" -ForegroundColor Cyan
     } catch {
         Write-Host "[x] Could not add eGit to system PATH. To add it manually, run this command as administrator:" -ForegroundColor Yellow
-        Write-Host "    setx /M PATH `"%PATH%;$scriptsDir`"" -ForegroundColor Cyan
+        Write-Host "    cmd /c `"setx /M PATH `"`"%PATH%;%scriptsDir%`"`"`"" -ForegroundColor Cyan
     }
 } else {
     Write-Host "[*] eGit is already in system PATH" -ForegroundColor Cyan
