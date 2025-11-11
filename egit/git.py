@@ -12,6 +12,20 @@ def get_git_executable() -> str:
     config = get_config()
     return config.get("git_executable", "git")
 
+def _ensure_safe_directory(git_exe: str, repo_path: str) -> None:
+    """Mark the repo_path as a safe directory to satisfy Git's ownership checks."""
+    try:
+        # If already safe, this is a no-op; otherwise, add it.
+        subprocess.run(
+            [git_exe, "config", "--global", "--add", "safe.directory", repo_path],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        # Best-effort only; don't block real git command
+        pass
+
 def run_git_command(args: List[str], cwd: Optional[Path] = None) -> str:
     """Run a git command and return its output"""
     try:
@@ -24,6 +38,12 @@ def run_git_command(args: List[str], cwd: Optional[Path] = None) -> str:
             "LC_ALL": "C.UTF-8",
             "PYTHONUTF8": "1"
         })
+
+        git_exe = get_git_executable()
+        effective_cwd = str(cwd) if cwd is not None else os.getcwd()
+
+        # Ensure Git treats this mount as safe (common in containers)
+        _ensure_safe_directory(git_exe, effective_cwd)
         
         # Run command with UTF-8 encoding
         result = subprocess.run(
