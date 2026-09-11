@@ -8,6 +8,7 @@ Welcome to the eGit user guide! This documentation will help you understand how 
 3. [Configuration](configuration.md)
 4. [Advanced Usage](advanced-usage.md)
 5. [Troubleshooting](troubleshooting.md)
+6. [Docker Execution](docker-execution.md)
 
 This guide is organized into several sections to help you find the information you need quickly. Choose a section from above to get started.
 

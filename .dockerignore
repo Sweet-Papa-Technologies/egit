@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+*.egg-info/
+.eggs/
+.build/
+dist/
+.idea/
+.vscode/
+
+# VCS
+.git
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Cache
+.cache/
+.mypy_cache/
+pip-cache/
+
