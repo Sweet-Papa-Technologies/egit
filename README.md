@@ -108,6 +108,26 @@ egit release-notes 1.0.0 --draft
 egit release-notes 1.0.0 --tag
 ```
 
+### Compare Git References
+Generate AI-powered technical documentation comparing two Git references using the AutoTecDoc template.
+
+```bash
+# Compare two tags and output markdown to a file
+egit compare v1.0.0 v2.0.0 -o changes.md
+
+# Compare branches and show JSON
+egit compare main feature-branch --format json
+
+# Compare specific commits and print plain text with verbose progress
+egit compare abc123 def456 --format text --verbose
+```
+
+Notes:
+- Shows a progress spinner; use --verbose to display file counts and detailed status.
+- Detects binary files and skips deep analysis for subprojects with 55+ changed files.
+- Handles large diffs with model-aware chunking; pass --model to override configured LLM.
+- Output formats: markdown, json, text. The markdown/text formats follow the AutoTecDoc template exactly.
+
 ### Configuration Management
 ```bash
 # View current configuration

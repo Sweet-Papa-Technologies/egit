@@ -5,6 +5,8 @@ import sys
 import typer
 from rich.console import Console
 from rich import print as rprint
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from .compare import ComparisonEngine, estimate_model_capacity
 from typing import Optional, List
 import subprocess
 
@@ -266,6 +268,100 @@ def summarize(
                     console.print(f"\n[red]Error committing changes:[/red] {str(e)}")
                     raise typer.Exit(1)
             
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {str(e)}")
+        raise typer.Exit(1)
+
+@app.command()
+def compare(
+    from_ref: str = typer.Argument(..., help="Starting reference (commit, branch, tag)"),
+    to_ref: str = typer.Argument(..., help="Ending reference (commit, branch, tag)"),
+    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path (default: stdout)"),
+    format: str = typer.Option("markdown", "--format", "-f", help="Output format: markdown, json, or text"),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="LLM model to use (overrides config)"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed progress"),
+):
+    """
+    Compare two Git references and generate AI-powered technical documentation.
+
+    Examples:
+        egit compare v1.0.0 v2.0.0
+        egit compare main feature-branch -o changes.md
+        egit compare abc123 def456 --format json
+    """
+    try:
+        # Validate format
+        valid_formats = {"markdown", "json", "text"}
+        if format not in valid_formats:
+            console.print(f"[red]Invalid format '{format}'. Use one of: markdown, json, text[/red]")
+            raise typer.Exit(1)
+
+        # Pre-fetch to ensure refs/tags/remotes are up-to-date
+        try:
+            if verbose:
+                console.print("[cyan]Fetching remote refs and tags...[/cyan]")
+            git.fetch_all(remotes=True, tags=True, prune=True)
+        except Exception as e:
+            if verbose:
+                console.print(f"[yellow]Fetch warning:[/yellow] {str(e)}")
+
+        # Resolve refs (support short SHA, tags, branches, remotes)
+        resolved_from = git.resolve_ref(from_ref)
+        resolved_to = git.resolve_ref(to_ref)
+        if not resolved_from:
+            console.print(f"[red]Git reference not found or ambiguous:[/red] {from_ref}")
+            console.print("Tip: provide a full commit SHA, existing tag/branch name, or disambiguate the short SHA.")
+            raise typer.Exit(1)
+        if not resolved_to:
+            console.print(f"[red]Git reference not found or ambiguous:[/red] {to_ref}")
+            console.print("Tip: provide a full commit SHA, existing tag/branch name, or disambiguate the short SHA.")
+            raise typer.Exit(1)
+
+        # Model selection
+        cfg = config_module.get_config()
+        model_name = model or cfg.get("llm_model", "ollama/llama3.2:3b")
+        max_ctx = estimate_model_capacity(model_name)
+
+        # Show progress spinner while processing
+        spinner = SpinnerColumn(style="cyan")
+        textcol = TextColumn("[progress.description]{task.description}")
+        with Progress(spinner, textcol, transient=not verbose) as progress:
+            task_id = progress.add_task("Analyzing changes...", start=True)
+
+            # If verbose, show file count first (use resolved refs for reliability)
+            older_ref_resolved, newer_ref_resolved = git.normalize_ref_order(resolved_from, resolved_to)
+            try:
+                changed_files = git.get_changed_files_between(older_ref_resolved, newer_ref_resolved)
+                if verbose:
+                    progress.update(task_id, description=f"Analyzing {len(changed_files)} files...")
+            except Exception:
+                changed_files = []
+                if verbose:
+                    progress.update(task_id, description="Analyzing files...")
+
+            engine = ComparisonEngine(model_name=model_name, max_context_tokens=max_ctx)
+
+            # Perform comparison with resolved refs
+            result = engine.compare(resolved_from, resolved_to, output_format=format)
+            progress.update(task_id, description="Formatting output...")
+
+            # Format output
+            output_text = engine.format_output(result, format)
+
+        # Write to file or stdout
+        if output:
+            try:
+                with open(output, "w", encoding="utf-8") as f:
+                    f.write(output_text)
+                if verbose:
+                    console.print(f"[green]Wrote output to {output}[/green]")
+            except Exception as e:
+                console.print(f"[red]Failed to write output file:[/red] {str(e)}")
+                raise typer.Exit(1)
+        else:
+            # Print to stdout
+            console.print(output_text)
+
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
         raise typer.Exit(1)

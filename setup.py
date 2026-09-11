@@ -10,7 +10,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="egit",
-    version="0.1.0",
+    version="0.6.2",
     packages=find_packages(),
     install_requires=[
         "litellm>=1.0.0",
