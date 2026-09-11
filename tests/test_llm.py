@@ -81,3 +81,92 @@ def test_generate_release_notes(mock_config, mocker):
     mock_completion.assert_called_once()
     assert isinstance(notes, str)
     assert "Release notes content" in notes
+
+
+# ---- regression tests: summary failures must never become commit messages ----
+
+def _mock_response(text: str):
+    resp = MagicMock()
+    resp.choices = [MagicMock(message=MagicMock(content=text))]
+    return resp
+
+
+def test_summarize_changes_raises_on_llm_error(mock_config, mocker):
+    """A provider error must raise, not be returned as the commit message"""
+    mocker.patch("egit.llm.get_config", return_value=mock_config)
+    mocker.patch("egit.llm.completion", side_effect=Exception("API key not valid"))
+
+    with pytest.raises(RuntimeError, match="Failed to generate summary"):
+        llm.summarize_changes(["M file.py"], ["+x"])
+
+
+def test_summarize_changes_raises_on_empty_response(mock_config, mocker):
+    mocker.patch("egit.llm.get_config", return_value=mock_config)
+    mocker.patch("egit.llm.completion", return_value=_mock_response("   "))
+
+    with pytest.raises(RuntimeError, match="empty"):
+        llm.summarize_changes(["M file.py"], ["+x"])
+
+
+def test_summarize_changes_retries_rate_limit(mock_config, mocker):
+    """A 429 is retried using the provider's suggested delay, then succeeds"""
+    mocker.patch("egit.llm.get_config", return_value=mock_config)
+    sleep = mocker.patch("egit.llm.time.sleep")
+    rate_limited = Exception(
+        'RateLimitError: code 429 RESOURCE_EXHAUSTED "retryDelay": "3s"'
+    )
+    completion = mocker.patch(
+        "egit.llm.completion",
+        side_effect=[rate_limited, _mock_response("Add retry handling")],
+    )
+
+    summary = llm.summarize_changes(["M file.py"], ["+x"])
+
+    assert summary == "Add retry handling"
+    assert completion.call_count == 2
+    sleep.assert_called_once_with(4.0)  # provider delay + 1s
+
+
+def test_summarize_changes_gives_up_after_repeated_rate_limits(mock_config, mocker):
+    mocker.patch("egit.llm.get_config", return_value=mock_config)
+    mocker.patch("egit.llm.time.sleep")
+    mocker.patch(
+        "egit.llm.completion",
+        side_effect=Exception("code 429 RESOURCE_EXHAUSTED"),
+    )
+
+    with pytest.raises(RuntimeError, match="Failed to generate summary"):
+        llm.summarize_changes(["M file.py"], ["+x"])
+
+
+def test_non_rate_limit_errors_are_not_retried(mock_config, mocker):
+    mocker.patch("egit.llm.get_config", return_value=mock_config)
+    sleep = mocker.patch("egit.llm.time.sleep")
+    completion = mocker.patch(
+        "egit.llm.completion", side_effect=Exception("API key not valid")
+    )
+
+    with pytest.raises(RuntimeError):
+        llm.summarize_changes(["M file.py"], ["+x"])
+
+    assert completion.call_count == 1
+    sleep.assert_not_called()
+
+
+def test_summarize_changes_truncates_huge_diff(mock_config, mocker):
+    """Oversized diffs are trimmed before being sent so quota is not blown"""
+    mocker.patch("egit.llm.get_config", return_value=mock_config)
+    completion = mocker.patch(
+        "egit.llm.completion", return_value=_mock_response("Add lockfiles")
+    )
+    huge_diff = ["+" + ("x" * 1000)] * 400  # ~400k chars
+
+    llm.summarize_changes(["A package-lock.json"], huge_diff)
+
+    sent = completion.call_args.kwargs["messages"][1]["content"]
+    assert len(sent) < llm.MAX_DIFF_CHARS + 2000
+    assert "diff truncated" in sent
+
+
+def test_truncate_diff_leaves_small_diffs_alone():
+    assert llm._truncate_diff("small diff") == "small diff"

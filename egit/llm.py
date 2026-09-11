@@ -5,6 +5,50 @@ from typing import Optional, List, Dict, Any
 from litellm import completion
 from .config import load_config, get_config
 import os
+import re
+import time
+
+# Cap the diff we hand the model. Free-tier Gemini allows 250k input tokens per
+# minute; a first commit of a whole repo (lockfiles included) blows past that.
+MAX_DIFF_CHARS = 200_000
+
+
+def _truncate_diff(diff_text: str, max_chars: int = MAX_DIFF_CHARS) -> str:
+    """Trim an oversized diff so the request stays inside the provider's quota"""
+    if len(diff_text) <= max_chars:
+        return diff_text
+    omitted = len(diff_text) - max_chars
+    return (
+        diff_text[:max_chars]
+        + f"\n\n[... diff truncated, {omitted} more characters omitted ...]"
+    )
+
+
+def _is_rate_limit(err: Exception) -> bool:
+    text = str(err)
+    return (
+        "RateLimit" in type(err).__name__
+        or "429" in text
+        or "RESOURCE_EXHAUSTED" in text
+    )
+
+
+def _completion_with_retry(messages: List[Dict[str, str]], llm_config: Dict[str, Any],
+                           attempts: int = 4):
+    """Call the model, backing off when the provider reports a rate limit"""
+    delay = 2.0
+    for attempt in range(attempts):
+        try:
+            return completion(messages=messages, **llm_config)
+        except Exception as e:
+            if not _is_rate_limit(e) or attempt == attempts - 1:
+                raise
+            match = re.search(r'retryDelay"?:\s*"?(\d+(?:\.\d+)?)s', str(e))
+            wait = float(match.group(1)) + 1 if match else delay
+            print(f"Rate limited by provider, retrying in {wait:.0f}s "
+                  f"(attempt {attempt + 2}/{attempts})")
+            time.sleep(min(wait, 60))
+            delay = min(delay * 2, 60)
 
 SUMMARY_PROMPT = """
 You are a helpful assistant that summarizes Git commit messages. Please summarize all of the changes this person has made to their code based off the commit messages.
@@ -80,7 +124,7 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
     
     # Prepare the prompt with both file changes and diffs
     changes_text = "\n".join(changes)
-    diff_text = "\n".join(diffs)
+    diff_text = _truncate_diff("\n".join(diffs))
     
     # Create a more specific system prompt
     system_prompt = """You are a Git commit message generator. You will ONLY output a single line commit message.
@@ -131,17 +175,18 @@ def summarize_changes(changes: List[str], diffs: List[str]) -> str:
         # print(MESSAGES)
 
         llm_config = get_llm_config()
-        response = completion(
-            messages=MESSAGES,
-            **llm_config
-        )
-        
+        response = _completion_with_retry(MESSAGES, llm_config)
+
         # Clean up the response
         summary = response.choices[0].message.content.strip()
-                
+
+        if not summary:
+            raise RuntimeError("Model returned an empty commit message")
+
         return summary
     except Exception as e:
-        return f"Error generating summary: {str(e)}"
+        # Never hand the caller an error string: it would be committed verbatim.
+        raise RuntimeError(f"Failed to generate summary: {e}") from e
 
 def generate_release_notes(commits: List[Dict[str, Any]], version: str) -> str:
     """Generate release notes from a list of commits"""
