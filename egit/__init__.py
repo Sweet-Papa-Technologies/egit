@@ -2,7 +2,7 @@
 eGit - A CLI tool for enhanced Git commit messages and tasks using LLMs
 """
 
-__version__ = "0.5.2"
+__version__ = "0.6.1"
 
 ## Fancy header thing
 TITLE = r"""

@@ -23,7 +23,7 @@ def setup_llm_env():
     # Set environment variables for Ollama
     if config.get("llm_provider") == "ollama":
         os.environ["OPENAI_API_KEY"] = "sk-123"  # Ollama needs any non-empty key
-        os.environ["OPENAI_API_BASE"] = config.get("llm_api_base", "http://localhost:11434/v1")
+        os.environ["OPENAI_API_BASE"] = config.get("llm_api_base", "http://localhost:11434")
     else:
         # For other providers, use the configured values
         if config.get("llm_api_key"):
@@ -198,3 +198,190 @@ ONLY respond with the release notes in the exact format above. Keep it very conc
     
     # Extract and return the release notes
     return response.choices[0].message.content.strip()
+
+# ==== Comparison-specific analysis functions ====
+
+def analyze_file_changes(diff: str, filepath: str, model: Optional[str] = None) -> str:
+    """
+    Analyze a file's diff and generate a technical summary.
+
+    Prompt template should include:
+    - File path and change type (best-effort inference from diff headers)
+    - Full diff content
+    - Request for: purpose, impact, technical details, breaking changes
+    """
+    setup_llm_env()
+    llm_config = get_llm_config()
+    if model:
+        llm_config["model"] = model
+
+    # Best-effort inference of change type from diff header
+    change_type = "Modified"
+    if diff.startswith("diff --git"):
+        if "\nnew file mode" in diff:
+            change_type = "Added"
+        elif "\ndeleted file mode" in diff:
+            change_type = "Deleted"
+        elif "\nrename from " in diff or "\nrename to " in diff:
+            change_type = "Renamed"
+
+    prompt = f"""You are an expert software engineer generating technical change documentation for a single file.
+
+FILE: {filepath}
+CHANGE TYPE: {change_type}
+
+DIFF (unified):
+{diff}
+
+Requirements:
+- Summarize what changed at a high level and why (inferred purpose)
+- Assess impact: Low/Medium/High/Critical; call out breaking changes if present
+- List technical details: new/modified functions, classes, APIs, config, data models
+- Note dependencies affected or external integrations touched
+- Provide 3-6 bullet points as KEY CHANGES, followed by a brief paragraph summary
+- Keep language precise and factual
+
+Output:
+KEY CHANGES:
+- <bullet 1>
+- <bullet 2>
+- <bullet 3>
+
+SUMMARY:
+<1-2 short paragraphs>
+"""
+    try:
+        response = completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You write precise technical summaries of code diffs for release documentation."
+                },
+                {"role": "user", "content": prompt},
+            ],
+            **llm_config,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error analyzing {filepath}: {str(e)}"
+
+def analyze_chunk_changes(chunk: str, chunk_index: int, total_chunks: int, filepath: str) -> str:
+    """
+    Analyze a chunk of a large file's diff.
+
+    Used when file is too large for single analysis.
+    """
+    setup_llm_env()
+    llm_config = get_llm_config()
+
+    prompt = f"""You are analyzing chunk {chunk_index}/{total_chunks} of the diff for {filepath}.
+
+CHUNK DIFF:
+{chunk}
+
+Summarize key changes in this chunk in 2-4 bullets and a brief 2-3 sentence note.
+Focus on functional impact, technical details, and potential risks.
+"""
+    try:
+        response = completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You write concise technical summaries of code diffs."
+                },
+                {"role": "user", "content": prompt},
+            ],
+            **llm_config,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error analyzing chunk {chunk_index} for {filepath}: {str(e)}"
+
+def merge_chunk_summaries(summaries: List[str], filepath: str) -> str:
+    """
+    Merge multiple chunk summaries into a cohesive file summary.
+    """
+    setup_llm_env()
+    llm_config = get_llm_config()
+
+    joined = "\n\n".join(f"Chunk {i+1}:\n{s}" for i, s in enumerate(summaries))
+    prompt = f"""You are merging chunk-level analyses into a single coherent summary for {filepath}.
+
+CHUNK SUMMARIES:
+{joined}
+
+Produce:
+- KEY CHANGES: 3-6 consolidated bullets (no duplicates)
+- SUMMARY: one concise paragraph covering purpose, impact, technical details, breaking changes if any
+"""
+    try:
+        response = completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You consolidate technical notes into clear release documentation."
+                },
+                {"role": "user", "content": prompt},
+            ],
+            **llm_config,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error merging summaries for {filepath}: {str(e)}"
+
+def generate_comparison_summary(
+    file_summaries: List[str],
+    stats: Dict[str, int],
+    from_ref: str,
+    to_ref: str
+) -> str:
+    """
+    Generate high-level project comparison summary from all file analyses.
+
+    Prompt should synthesize across all files to identify:
+    - Major themes (refactoring, new features, bug fixes)
+    - Architectural changes
+    - Breaking changes
+    - Risk areas
+    """
+    setup_llm_env()
+    llm_config = get_llm_config()
+
+    bullets = []
+    for s in file_summaries:
+        for line in s.splitlines():
+            t = line.strip()
+            if t.startswith("- "):
+                bullets.append(t[2:])
+    bullets_text = "\n".join(f"- {b}" for b in bullets[:40])  # cap for prompt size
+
+    prompt = f"""You are writing the executive summary for a technical change document.
+
+REF RANGE: {from_ref} -> {to_ref}
+STATS: files_changed={stats.get('files_changed', 0)}, insertions={stats.get('insertions', 0)}, deletions={stats.get('deletions', 0)}
+
+KEY FILE-LEVEL BULLETS (subset):
+{bullets_text}
+
+Synthesize a high-level summary covering:
+- Overall scope and themes (features, fixes, refactors)
+- Architectural or dependency changes
+- Any breaking changes and risk areas
+- Impact assessment
+
+Output 1-2 short paragraphs, precise and factual, suitable for executives and engineers.
+"""
+    try:
+        response = completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You write clear executive summaries of software changes."
+                },
+                {"role": "user", "content": prompt},
+            ],
+            **llm_config,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error generating project summary: {str(e)}"
